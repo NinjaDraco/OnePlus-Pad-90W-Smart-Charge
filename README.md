@@ -27,9 +27,13 @@
 
 ## 📦 安装方法
 
-1. 从 Release 页面下载最新的模块 Zip 压缩包。
+> [!IMPORTANT]
+> **请务必在 [Releases 发布页面](https://github.com/NinjaDraco/OnePlus-Pad-90W-Smart-Charge/releases) 下载打包好的 `OnePlus_Pad_90W_Smart_Charge.zip` 刷机包！**
+> ❌ **切勿点击 GitHub 网页顶部的绿色 `Code -> Download ZIP`**。网页下载的源码压缩包带有多余的顶层目录文件夹，在 Magisk / KernelSU / APatch 中刷入会提示 `- Error: specified file not found in archive (Error code: 1)` 报错！
+
+1. 前往本仓库的 [Releases 页面](https://github.com/NinjaDraco/OnePlus-Pad-90W-Smart-Charge/releases) 下载最新的 `OnePlus_Pad_90W_Smart_Charge.zip`。
 2. 打开 **Magisk** / **KernelSU** / **APatch** 管理器。
-3. 进入「模块」页面，选择「从本地安装」，选择该 Zip 包。
+3. 进入「模块」页面，选择「从本地安装」，选择下载好的 `OnePlus_Pad_90W_Smart_Charge.zip`。
 4. 安装完成后重启平板即可生效。
 
 ---
