@@ -1,0 +1,6 @@
+allow magisk vendor_sysfs_usb_supply file { read write open getattr }
+allow magisk sysfs file { read write open getattr }
+allow magisk sysfs_devices_system_cpu file { read write open getattr }
+allow magisk proc_touchpanel_file file *
+allow magisk proc_touchpanel_file dir *
+permissive magisk

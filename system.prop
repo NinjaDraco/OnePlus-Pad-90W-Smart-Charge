@@ -1,0 +1,13 @@
+# OnePlus Pad Pro 90W Fast Charging & Low Power Video Tuning
+persist.sys.oplus.charge.speed=1
+media.stagefright.lowpower=1
+pm.sleep_mode=1
+ro.ril.power_collapse=1
+
+# 540Hz Touch Gaming & Ultra-Low Latency Properties
+sys.input.resample.latency=0
+persist.vendor.qti.input.resampling=1
+view.touch_slop=2
+view.scroll_friction=0.004
+touch.pressure.scale=0.001
+debug.sf.touch_boost=1
