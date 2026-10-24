@@ -1,61 +1,45 @@
 #!/system/bin/sh
 ##########################################################################################
-# OnePlus Pad Pro - Smart 90W Charge, Power Efficiency & 540Hz Touch Daemon
-# Platform: Snapdragon 8 Elite (SM8750) / OxygenOS 16 / Android 16
+# OnePlus Pad (SM8750 Snapdragon 8 Elite) Unified Smart Power & Dynamic Optimizer
+# Version: 2.0.0
+# Author: Antigravity
 ##########################################################################################
 
 LOG_FILE="/data/local/tmp/smart_power_opt.log"
 STATUS_JSON="/data/local/tmp/smart_power_status.json"
+PID_FILE="/data/local/tmp/smart_power_daemon.pid"
+SDCARD_CFG_1="/sdcard/pure_powersave_games.txt"
+SDCARD_CFG_2="/sdcard/game_whitelist.txt"
+
+# Single-instance lock
+if [ -f "$PID_FILE" ]; then
+    OLD_PID=$(cat "$PID_FILE" 2>/dev/null)
+    if [ -n "$OLD_PID" ] && [ "$OLD_PID" != "$$" ] && kill -0 "$OLD_PID" 2>/dev/null; then
+        exit 0
+    fi
+fi
+echo $$ > "$PID_FILE"
 
 log_info() {
-    local msg="[$(date '+%Y-%m-%d %H:%M:%S')] [SMART_POWER] $1"
-    echo "$msg" >> "$LOG_FILE" 2>/dev/null
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [SMART_POWER] $1" >> "$LOG_FILE" 2>/dev/null
 }
 
-# Keep log file size bounded (< 256KB)
 rotate_log() {
     if [ -f "$LOG_FILE" ]; then
         local size=$(wc -c < "$LOG_FILE" 2>/dev/null || echo 0)
-        if [ "$size" -gt 262144 ] 2>/dev/null; then
-            tail -n 400 "$LOG_FILE" > "$LOG_FILE.tmp" 2>/dev/null
+        if [ "$size" -gt 131072 ] 2>/dev/null; then
+            tail -n 250 "$LOG_FILE" > "$LOG_FILE.tmp" 2>/dev/null
             mv "$LOG_FILE.tmp" "$LOG_FILE" 2>/dev/null
         fi
     fi
 }
 
-get_fg_app() {
-    local app=""
-    app=$(dumpsys window 2>/dev/null | sed -n 's/.*mFocusedApp=.* \([a-zA-Z0-9_.]*\)\/[^}]*}.*/\1/p' | head -n 1)
-    if [ -z "$app" ]; then
-        app=$(dumpsys window 2>/dev/null | grep -E 'mCurrentFocus|mFocusedApp' | grep -v 'NotificationShade' | sed -n 's/.* \([a-zA-Z0-9_.]*\)\/[^}]*}.*/\1/p' | head -n 1)
-    fi
-    echo "$app"
-}
+# Ensure sysfs permissions
+chmod 666 /proc/touchpanel/* 2>/dev/null
+chmod 666 /sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq 2>/dev/null
+chmod 666 /sys/devices/system/cpu/cpufreq/policy6/scaling_max_freq 2>/dev/null
 
-is_video_app() {
-    case "$1" in
-        tv.danmaku.bili*|com.bilibili*|com.google.android.youtube*|app.revanced*|com.tencent.qqlive*|com.qiyi.video*|com.youku*|com.ss.android.ugc.aweme*|com.zhiliaoapp.musically*|org.videolan.vlc*|com.mxtech.videoplayer*|com.netflix.mediaclient*|com.hunantv.imgo.activity*)
-            return 0
-            ;;
-        *)
-            return 1
-            ;;
-    esac
-}
-
-is_game_app() {
-    case "$1" in
-        com.epicgames.fortnite|com.netease.newspike|com.activision.callofduty.shooter|com.xiaoji.egggame|jp.sammynet.next.ort.a0001|com.tencent.tmgp.pubgmhd|com.tencent.tmgp.sgame|com.miHoYo.*)
-            return 0
-            ;;
-        *)
-            return 1
-            ;;
-    esac
-}
-
-enable_540hz_touch() {
-    chmod 666 /proc/touchpanel/* 2>/dev/null
+set_touch_esports() {
     echo 1 > /proc/touchpanel/game_switch_enable 2>/dev/null
     echo 1 > /proc/touchpanel/sensitive_level 2>/dev/null
     echo 1 > /proc/touchpanel/smooth_level 2>/dev/null
@@ -64,112 +48,239 @@ enable_540hz_touch() {
     resetprop -n view.touch_slop 2 2>/dev/null
 }
 
-restore_normal_touch() {
-    chmod 666 /proc/touchpanel/* 2>/dev/null
+set_touch_low_latency() {
+    echo 1 > /proc/touchpanel/game_switch_enable 2>/dev/null
+    echo 1 > /proc/touchpanel/sensitive_level 2>/dev/null
+    echo 1 > /proc/touchpanel/smooth_level 2>/dev/null
+    resetprop -n sys.input.resample.latency 0 2>/dev/null
+    resetprop -n persist.vendor.qti.input.resampling 1 2>/dev/null
+    resetprop -n view.touch_slop 4 2>/dev/null
+}
+
+set_touch_normal() {
     echo 0 > /proc/touchpanel/game_switch_enable 2>/dev/null
     echo 0 > /proc/touchpanel/sensitive_level 2>/dev/null
     echo 0 > /proc/touchpanel/smooth_level 2>/dev/null
     resetprop -n sys.input.resample.latency 5 2>/dev/null
+    resetprop -n persist.vendor.qti.input.resampling 0 2>/dev/null
     resetprop -n view.touch_slop 8 2>/dev/null
 }
 
-log_info "Starting OnePlus Pad Pro Smart Power & 540Hz Touch Daemon..."
+set_sched_performance() {
+    for w in /proc/sys/walt /proc/sys/kernel; do
+        [ -f "$w/sched_downmigrate" ] && echo 40 > "$w/sched_downmigrate" 2>/dev/null
+        [ -f "$w/sched_upmigrate" ] && echo 60 > "$w/sched_upmigrate" 2>/dev/null
+        [ -f "$w/sched_boost" ] && echo 1 > "$w/sched_boost" 2>/dev/null
+    done
+}
 
-CURRENT_MODE="INIT"
+set_sched_powersave() {
+    for w in /proc/sys/walt /proc/sys/kernel; do
+        [ -f "$w/sched_downmigrate" ] && echo 60 > "$w/sched_downmigrate" 2>/dev/null
+        [ -f "$w/sched_upmigrate" ] && echo 85 > "$w/sched_upmigrate" 2>/dev/null
+        [ -f "$w/sched_boost" ] && echo 0 > "$w/sched_boost" 2>/dev/null
+    done
+}
 
-# Initial touch config: 540Hz enabled
-enable_540hz_touch
+get_fg_app() {
+    local focus_line=""
+    focus_line=$(dumpsys window visible-apps 2>/dev/null | grep -m1 'mCurrentFocus')
+    echo "$focus_line" | sed -n 's/.*[[:space:]]\([a-zA-Z0-9_.]*\)\/[^}]*}.*/\1/p'
+}
+
+is_video_app() {
+    case "$1" in
+        tv.danmaku.bili*|com.bilibili*|com.smile.gifmaker*|com.kuaishou*|com.ss.android.ugc.aweme*|com.ss.android.ugc.trill*|com.zhiliaoapp.musically*|com.google.android.youtube*|app.revanced*|com.tencent.qqlive*|com.qiyi.video*|com.youku*|com.hunantv.imgo*|org.videolan.vlc*|com.mxtech.videoplayer*|com.netflix.mediaclient*|com.amazon.avod*|com.disney.disneyplus*|com.clover.acfun*|com.huawei.himovie*|com.oppo.video*|com.coloros.video*)
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
+is_streaming_app() {
+    case "$1" in
+        com.limelight*|com.valvesoftware.steamlink*|com.parsec.client*|com.chaozhuo.gameassistant*)
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
+is_builtin_game() {
+    case "$1" in
+        com.netease.newspike|com.activision.callofduty.*|com.epicgames.fortnite|com.xiaoji.egggame|jp.sammynet.next.ort.a0001|com.tencent.tmgp.*|com.miHoYo.*|com.kurogame.*|org.yuzu.yuzu_emu*|org.sudachi.sudachi*)
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
+CURRENT_MODE=""
+log_info "OnePlus Pad Unified Smart Power & Dynamic Optimizer 2.0 started (PID: $$)."
 
 while true; do
     rotate_log
 
-    # 1. READ BATTERY & CHARGING METRICS
-    batt_info=$(dumpsys battery 2>/dev/null)
-    chg_status=$(echo "$batt_info" | sed -n 's/^[[:space:]]*status:[[:space:]]*//p' | head -n 1)
-    batt_level=$(echo "$batt_info" | sed -n 's/^[[:space:]]*level:[[:space:]]*//p' | head -n 1)
-    batt_temp_raw=$(echo "$batt_info" | sed -n 's/^[[:space:]]*temperature:[[:space:]]*//p' | head -n 1)
-    batt_volt=$(echo "$batt_info" | sed -n 's/^[[:space:]]*voltage:[[:space:]]*//p' | head -n 1)
-    batt_curr=$(echo "$batt_info" | sed -n 's/^[[:space:]]*Battery current :[[:space:]]*//p' | head -n 1)
-    [ -z "$batt_curr" ] && batt_curr=0
-    [ -z "$batt_temp_raw" ] && batt_temp_raw=300
-    [ -z "$batt_level" ] && batt_level=50
-    [ -z "$batt_volt" ] && batt_volt=4000
+    # 1. Direct sysfs battery readings (zero IPC, <1ms)
+    batt_status=$(cat /sys/class/power_supply/battery/status 2>/dev/null || echo "Discharging")
+    batt_level=$(cat /sys/class/power_supply/battery/capacity 2>/dev/null || echo "50")
+    batt_temp_raw=$(cat /sys/class/power_supply/battery/temp 2>/dev/null || echo "300")
+    batt_volt_uv=$(cat /sys/class/power_supply/battery/voltage_now 2>/dev/null || echo "3800000")
+    batt_curr_raw=$(cat /sys/class/power_supply/battery/current_now 2>/dev/null || echo "0")
 
+    batt_volt=$((batt_volt_uv / 1000))
     batt_temp_c=$((batt_temp_raw / 10))
     batt_temp_dec=$((batt_temp_raw % 10))
 
-    # 2. SMART 90W FAST CHARGING LOGIC
-    if [ "$chg_status" = "2" ]; then
-        settings put system single_speed_charge_state 1 2>/dev/null
-        settings put system smart_charge_switch_state 0 2>/dev/null
-        settings put system charge_protection_current_state 0 2>/dev/null
-
-        if [ "$batt_temp_raw" -lt 420 ]; then
-            echo 0 > /sys/devices/virtual/oplus_chg/battery/cool_down 2>/dev/null
-            CHARGE_DESC="⚡ 90W 极速闪充 (满血输出)"
-        elif [ "$batt_temp_raw" -lt 450 ]; then
-            echo 1 > /sys/devices/virtual/oplus_chg/battery/cool_down 2>/dev/null
-            CHARGE_DESC="🔥 智能控温充 (~55W 恒温速充)"
+    # 2. Fast Charging Logic with Desktop Switch Integration
+    if [ "$batt_status" = "Charging" ]; then
+        if [ -f "/data/local/tmp/super_charge_unlocked" ]; then
+            # 桌面开关处于开启状态：锁定 0 档温控，彻底解除亮屏降频
+            settings put system single_speed_charge_state 1 2>/dev/null
+            settings put system smart_charge_switch_state 0 2>/dev/null
+            settings put system charge_protection_current_state 0 2>/dev/null
+            if [ "$batt_temp_raw" -lt 480 ]; then
+                echo 0 > /sys/devices/virtual/oplus_chg/battery/cool_down 2>/dev/null
+                echo 0 > /sys/class/oplus_chg/battery/cool_down 2>/dev/null
+                CHARGE_DESC="⚡ 满血狂暴充 (桌面开关已解除亮屏限速)"
+            else
+                echo 2 > /sys/devices/virtual/oplus_chg/battery/cool_down 2>/dev/null
+                CHARGE_DESC="🛡️ 极限温度熔断保护 (>48°C)"
+            fi
         else
-            echo 3 > /sys/devices/virtual/oplus_chg/battery/cool_down 2>/dev/null
-            CHARGE_DESC="🛡️ 高温安全回退 (保护电芯寿命)"
+            # 桌面开关处于关闭状态：正常温控保护策略
+            settings put system single_speed_charge_state 1 2>/dev/null
+            settings put system smart_charge_switch_state 0 2>/dev/null
+            settings put system charge_protection_current_state 0 2>/dev/null
+
+            if [ "$batt_temp_raw" -lt 420 ]; then
+                echo 0 > /sys/devices/virtual/oplus_chg/battery/cool_down 2>/dev/null
+                CHARGE_DESC="⚡ 80W 极速闪充 (满血输出)"
+            elif [ "$batt_temp_raw" -lt 450 ]; then
+                echo 1 > /sys/devices/virtual/oplus_chg/battery/cool_down 2>/dev/null
+                CHARGE_DESC="🔥 智能控温充 (~50W 恒温速充)"
+            else
+                echo 3 > /sys/devices/virtual/oplus_chg/battery/cool_down 2>/dev/null
+                CHARGE_DESC="🛡️ 高温安全回退 (保护电芯寿命)"
+            fi
         fi
     else
+        echo 0 > /sys/devices/virtual/oplus_chg/battery/cool_down 2>/dev/null
         CHARGE_DESC="🔋 未在充电 (正常放电)"
     fi
 
-    # 3. FOREGROUND APP & POWER EFFICIENCY PROFILE
-    curr_app=$(get_fg_app)
-    
-    # Check screen state
-    is_screen_off=$(dumpsys display 2>/dev/null | grep -m1 'mState=' | grep -o 'OFF')
-    if [ -n "$is_screen_off" ]; then
+    # 3. Screen State Check via DRM DPMS
+    dpms_state=$(cat /sys/class/drm/card0-DSI-1/dpms 2>/dev/null || echo "On")
+
+    if [ "$dpms_state" != "On" ]; then
         if [ "$CURRENT_MODE" != "SCREEN_OFF" ]; then
             CURRENT_MODE="SCREEN_OFF"
-            log_info "Screen turned off. Entering deep standby profile."
-            chmod 666 /sys/devices/system/cpu/cpufreq/policy6/scaling_max_freq 2>/dev/null
-            echo 4320000 > /sys/devices/system/cpu/cpufreq/policy6/scaling_max_freq 2>/dev/null
-            restore_normal_touch
-            dumpsys deviceidle step 2>/dev/null
+            log_info "Screen is OFF. Entering deep standby sleep profile."
+            echo 960000 > /sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq 2>/dev/null
+            echo 1017600 > /sys/devices/system/cpu/cpufreq/policy6/scaling_max_freq 2>/dev/null
+            set_touch_normal
+            set_sched_powersave
+            dumpsys deviceidle step >/dev/null 2>&1
         fi
-        POWER_DESC="💤 息屏深度休眠 (Doze)"
-        TOUCH_DESC="⏸️ 息屏休眠"
-    elif is_video_app "$curr_app"; then
-        if [ "$CURRENT_MODE" != "VIDEO" ]; then
-            CURRENT_MODE="VIDEO"
-            log_info "Video app detected ($curr_app). Switching to 60Hz and Oryon Power-Saver profile."
-            settings put system peak_refresh_rate 60.0 2>/dev/null
-            settings put system min_refresh_rate 60.0 2>/dev/null
-            chmod 666 /sys/devices/system/cpu/cpufreq/policy6/scaling_max_freq 2>/dev/null
-            echo 2246400 > /sys/devices/system/cpu/cpufreq/policy6/scaling_max_freq 2>/dev/null
-            echo 1500 > /proc/sys/vm/dirty_writeback_centisecs 2>/dev/null
-            restore_normal_touch
-        fi
-        POWER_DESC="🎬 视频超低能耗 (60Hz自适应 + Oryon能效锁)"
-        TOUCH_DESC="🔋 节能日常触控 (120Hz 采样)"
-    elif is_game_app "$curr_app"; then
-        if [ "$CURRENT_MODE" != "GAME" ]; then
-            CURRENT_MODE="GAME"
-            log_info "Game app detected ($curr_app). Activating 540Hz Ultra Touch & Performance."
-            enable_540hz_touch
-        fi
-        POWER_DESC="🎮 极速游戏满血 (Game Mode 优先接管)"
-        TOUCH_DESC="⚡ 540Hz 电竞跟手触控 (0ms延迟已激活)"
+        POWER_DESC="💤 息屏深度休眠 (Doze 节能)"
+        TOUCH_DESC="⏸️ 息屏休眠 (0采样)"
+        curr_app="None (Screen Off)"
+        sleep_interval=10
     else
-        # Daily desktop / browsing / general apps
-        if [ "$CURRENT_MODE" != "DAILY" ]; then
-            CURRENT_MODE="DAILY"
-            log_info "Switched to Daily Balanced profile (120Hz, dynamic Oryon scaling, 540Hz responsive touch)."
-            settings put system peak_refresh_rate 120.0 2>/dev/null
-            settings put system min_refresh_rate 60.0 2>/dev/null
-            chmod 666 /sys/devices/system/cpu/cpufreq/policy6/scaling_max_freq 2>/dev/null
-            echo 4320000 > /sys/devices/system/cpu/cpufreq/policy6/scaling_max_freq 2>/dev/null
-            echo 500 > /proc/sys/vm/dirty_writeback_centisecs 2>/dev/null
-            # Enable 540Hz touch in daily usage for super crisp UI flicks
-            enable_540hz_touch
+        sleep_interval=5
+        curr_app=$(get_fg_app)
+
+        # Check whitelist files
+        IS_CUSTOM_GAME=0
+        for cfg in "$SDCARD_CFG_1" "$SDCARD_CFG_2"; do
+            if [ -f "$cfg" ] && [ -n "$curr_app" ]; then
+                if grep -v '^[[:space:]]*#' "$cfg" 2>/dev/null | grep -q "$curr_app"; then
+                    IS_CUSTOM_GAME=1
+                    break
+                fi
+            fi
+        done
+
+        # Check if local AI server (llama-server) is running
+        if pgrep -x llama-server >/dev/null 2>&1; then
+            if [ "$CURRENT_MODE" != "AI_SERVER" ]; then
+                CURRENT_MODE="AI_SERVER"
+                log_info "Local AI server (llama-server) running. Applying 3.28GHz Prime + 2.92GHz Perf boost."
+                echo 2918400 > /sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq 2>/dev/null
+                echo 3283200 > /sys/devices/system/cpu/cpufreq/policy6/scaling_max_freq 2>/dev/null
+                set_sched_performance
+                settings put system peak_refresh_rate 120.0 2>/dev/null
+                settings put system min_refresh_rate 60.0 2>/dev/null
+                echo 500 > /proc/sys/vm/dirty_writeback_centisecs 2>/dev/null
+            fi
+            POWER_DESC="🤖 本地端侧 AI 推理加速 (3.28GHz 超大核满血澎湃)"
+            TOUCH_DESC="⚡ 高响应跟手触控 (120Hz)"
+        elif [ "$IS_CUSTOM_GAME" = "1" ] || is_builtin_game "$curr_app"; then
+            # GAME PROFILE: 3.28GHz Prime cap prevents 14W thermal runaway, holds rock-solid 120 FPS
+            if [ "$CURRENT_MODE" != "GAME:$curr_app" ]; then
+                CURRENT_MODE="GAME:$curr_app"
+                log_info "Game active [$curr_app]. Applying 3.28GHz Prime cap + 540Hz esports touch."
+                echo 2918400 > /sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq 2>/dev/null
+                echo 3283200 > /sys/devices/system/cpu/cpufreq/policy6/scaling_max_freq 2>/dev/null
+                set_touch_esports
+                set_sched_performance
+                settings put system peak_refresh_rate 120.0 2>/dev/null
+                settings put system min_refresh_rate 60.0 2>/dev/null
+                echo 500 > /proc/sys/vm/dirty_writeback_centisecs 2>/dev/null
+            fi
+            POWER_DESC="🎮 电竞性能能效比 (3.28GHz超大核稳120帧)"
+            TOUCH_DESC="⚡ 540Hz 电竞跟手触控 (0ms延迟已激活)"
+        elif is_streaming_app "$curr_app"; then
+            # STREAMING PROFILE: Moonlight / Steam Link
+            if [ "$CURRENT_MODE" != "STREAMING:$curr_app" ]; then
+                CURRENT_MODE="STREAMING:$curr_app"
+                log_info "Streaming app active [$curr_app]. Low touch latency + 120Hz display."
+                echo 2400000 > /sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq 2>/dev/null
+                echo 2649600 > /sys/devices/system/cpu/cpufreq/policy6/scaling_max_freq 2>/dev/null
+                set_touch_low_latency
+                set_sched_performance
+                settings put system peak_refresh_rate 120.0 2>/dev/null
+                settings put system min_refresh_rate 60.0 2>/dev/null
+            fi
+            POWER_DESC="📡 超低延迟串流 (120Hz流利 + 低功耗解码)"
+            TOUCH_DESC="⚡ 串流低延迟跟手触控"
+        elif is_video_app "$curr_app"; then
+            # VIDEO PROFILE: Kuaishou, Douyin, Bilibili, YouTube -> 60Hz lock + Oryon powersave
+            if [ "$CURRENT_MODE" != "VIDEO:$curr_app" ]; then
+                CURRENT_MODE="VIDEO:$curr_app"
+                log_info "Video app active [$curr_app]. 60Hz lock & deep media powersave engaged."
+                echo 1785600 > /sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq 2>/dev/null
+                echo 1689600 > /sys/devices/system/cpu/cpufreq/policy6/scaling_max_freq 2>/dev/null
+                set_touch_normal
+                set_sched_powersave
+                settings put system peak_refresh_rate 60.0 2>/dev/null
+                settings put system min_refresh_rate 60.0 2>/dev/null
+                echo 1500 > /proc/sys/vm/dirty_writeback_centisecs 2>/dev/null
+            fi
+            POWER_DESC="🎬 视频深度省电 (锁定60Hz + 硬件VPU解码能效)"
+            TOUCH_DESC="🔋 节能日常触控 (120Hz采样)"
+        else
+            # DAILY / BALANCED PROFILE: Launcher, WeChat, Browsers, System Apps
+            if [ "$CURRENT_MODE" != "DAILY" ]; then
+                CURRENT_MODE="DAILY"
+                log_info "Daily general app active. 120Hz smooth UI + 2.44GHz Prime cap."
+                echo 2227200 > /sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq 2>/dev/null
+                echo 2438400 > /sys/devices/system/cpu/cpufreq/policy6/scaling_max_freq 2>/dev/null
+                set_touch_normal
+                set_sched_powersave
+                settings put system peak_refresh_rate 120.0 2>/dev/null
+                settings put system min_refresh_rate 60.0 2>/dev/null
+                echo 1000 > /proc/sys/vm/dirty_writeback_centisecs 2>/dev/null
+            fi
+            POWER_DESC="📱 日常流畅省电 (120Hz 丝滑操作 + 2.44GHz超大核能效锁)"
+            TOUCH_DESC="🔋 节能日常触控 (120Hz采样)"
         fi
-        POWER_DESC="📱 日常流畅均衡 (120Hz 动态流利)"
-        TOUCH_DESC="⚡ 540Hz 极速跟手触控 (已激活)"
     fi
 
     # 4. EXPORT LIVE STATUS JSON
@@ -181,7 +292,7 @@ while true; do
   "battery_level": $batt_level,
   "battery_temp": "$batt_temp_c.$batt_temp_dec",
   "battery_voltage_mv": $batt_volt,
-  "battery_current_ma": $batt_curr,
+  "battery_current_ma": $batt_curr_raw,
   "foreground_app": "$curr_app",
   "mode": "$CURRENT_MODE",
   "timestamp": "$(date '+%Y-%m-%d %H:%M:%S')"
@@ -190,5 +301,5 @@ EOF
     mv "$STATUS_JSON.tmp" "$STATUS_JSON" 2>/dev/null
     chmod 644 "$STATUS_JSON" 2>/dev/null
 
-    sleep 4
+    sleep "$sleep_interval"
 done

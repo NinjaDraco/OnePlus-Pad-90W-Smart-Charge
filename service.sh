@@ -15,6 +15,12 @@ if [ -f "$MODDIR/sepolicy.rule" ]; then
     magiskpolicy --apply "$MODDIR/sepolicy.rule" --live 2>/dev/null
 fi
 
+# Deploy fast charge toggle script to /data/local/tmp
+if [ -f "$MODDIR/scripts/toggle_fast_charge.sh" ]; then
+    cp "$MODDIR/scripts/toggle_fast_charge.sh" /data/local/tmp/toggle_fast_charge.sh 2>/dev/null
+    chmod 777 /data/local/tmp/toggle_fast_charge.sh 2>/dev/null
+fi
+
 # Ensure user preferred 315 DPI remains permanent
 wm density 315 2>/dev/null
 
