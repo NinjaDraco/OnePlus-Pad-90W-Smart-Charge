@@ -244,7 +244,7 @@ while true; do
                 echo 1100000000 > /sys/class/kgsl/kgsl-3d0/devfreq/max_freq 2>/dev/null
                 set_sched_performance
                 settings put system peak_refresh_rate 120.0 2>/dev/null
-                settings put system min_refresh_rate 60.0 2>/dev/null
+                settings put system min_refresh_rate 120.0 2>/dev/null
                 echo 500 > /proc/sys/vm/dirty_writeback_centisecs 2>/dev/null
             fi
             POWER_DESC="🤖 本地端侧 AI 推理加速 (3.28GHz 超大核满血澎湃)"
@@ -263,7 +263,7 @@ while true; do
                 set_touch_esports
                 set_sched_performance
                 settings put system peak_refresh_rate 120.0 2>/dev/null
-                settings put system min_refresh_rate 60.0 2>/dev/null
+                settings put system min_refresh_rate 120.0 2>/dev/null
                 echo 500 > /proc/sys/vm/dirty_writeback_centisecs 2>/dev/null
             fi
             POWER_DESC="🎮 电竞性能能效比 (3.28GHz超大核稳120帧)"
@@ -306,7 +306,7 @@ while true; do
                 set_touch_low_latency
                 set_sched_performance
                 settings put system peak_refresh_rate 120.0 2>/dev/null
-                settings put system min_refresh_rate 60.0 2>/dev/null
+                settings put system min_refresh_rate 120.0 2>/dev/null
             fi
             POWER_DESC="📡 超低延迟串流 (120Hz流利 + 低功耗解码)"
             TOUCH_DESC="⚡ 串流低延迟跟手触控"
@@ -343,7 +343,7 @@ while true; do
                 set_touch_normal
                 set_sched_powersave
                 settings put system peak_refresh_rate 120.0 2>/dev/null
-                settings put system min_refresh_rate 60.0 2>/dev/null
+                settings put system min_refresh_rate 120.0 2>/dev/null
                 echo 1000 > /proc/sys/vm/dirty_writeback_centisecs 2>/dev/null
             fi
             POWER_DESC="📱 日常流畅省电 (120Hz 丝滑操作 + 2.44GHz超大核能效锁)"
