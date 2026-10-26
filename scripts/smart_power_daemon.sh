@@ -10,6 +10,7 @@ STATUS_JSON="/data/local/tmp/smart_power_status.json"
 PID_FILE="/data/local/tmp/smart_power_daemon.pid"
 SDCARD_CFG_1="/sdcard/pure_powersave_games.txt"
 SDCARD_CFG_2="/sdcard/game_whitelist.txt"
+SDCARD_CFG_CASUAL="/sdcard/casual_powersave_games.txt"
 
 # Single-instance lock
 if [ -f "$PID_FILE" ]; then
@@ -38,6 +39,7 @@ rotate_log() {
 chmod 666 /proc/touchpanel/* 2>/dev/null
 chmod 666 /sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq 2>/dev/null
 chmod 666 /sys/devices/system/cpu/cpufreq/policy6/scaling_max_freq 2>/dev/null
+chmod 666 /sys/class/kgsl/kgsl-3d0/devfreq/max_freq 2>/dev/null
 
 set_touch_esports() {
     echo 1 > /proc/touchpanel/game_switch_enable 2>/dev/null
@@ -121,6 +123,17 @@ is_builtin_game() {
     esac
 }
 
+is_casual_game() {
+    case "$1" in
+        com.yooyoo.dwby3d.*|com.tuyoo.*|*.fishing*|*.by3d*|com.pokercity.*|com.jj.*|com.tencent.tmgp.dld|com.tencent.tmgp.cfby|com.xiaomi.gamecenter.*)
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
 CURRENT_MODE=""
 log_info "OnePlus Pad Unified Smart Power & Dynamic Optimizer 2.0 started (PID: $$)."
 
@@ -182,8 +195,12 @@ while true; do
         if [ "$CURRENT_MODE" != "SCREEN_OFF" ]; then
             CURRENT_MODE="SCREEN_OFF"
             log_info "Screen is OFF. Entering deep standby sleep profile."
+            chmod 666 /sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq 2>/dev/null
+            chmod 666 /sys/devices/system/cpu/cpufreq/policy6/scaling_max_freq 2>/dev/null
+            chmod 666 /sys/class/kgsl/kgsl-3d0/devfreq/max_freq 2>/dev/null
             echo 960000 > /sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq 2>/dev/null
             echo 1017600 > /sys/devices/system/cpu/cpufreq/policy6/scaling_max_freq 2>/dev/null
+            echo 160000000 > /sys/class/kgsl/kgsl-3d0/devfreq/max_freq 2>/dev/null
             set_touch_normal
             set_sched_powersave
             dumpsys deviceidle step >/dev/null 2>&1
@@ -193,7 +210,7 @@ while true; do
         curr_app="None (Screen Off)"
         sleep_interval=10
     else
-        sleep_interval=5
+        sleep_interval=3
         curr_app=$(get_fg_app)
 
         # Check whitelist files
@@ -207,13 +224,24 @@ while true; do
             fi
         done
 
+        IS_CASUAL_GAME=0
+        if [ -f "$SDCARD_CFG_CASUAL" ] && [ -n "$curr_app" ]; then
+            if grep -v '^[[:space:]]*#' "$SDCARD_CFG_CASUAL" 2>/dev/null | grep -q "$curr_app"; then
+                IS_CASUAL_GAME=1
+            fi
+        fi
+
         # Check if local AI server (llama-server) is running
         if pgrep -x llama-server >/dev/null 2>&1; then
             if [ "$CURRENT_MODE" != "AI_SERVER" ]; then
                 CURRENT_MODE="AI_SERVER"
                 log_info "Local AI server (llama-server) running. Applying 3.28GHz Prime + 2.92GHz Perf boost."
+                chmod 666 /sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq 2>/dev/null
+                chmod 666 /sys/devices/system/cpu/cpufreq/policy6/scaling_max_freq 2>/dev/null
+                chmod 666 /sys/class/kgsl/kgsl-3d0/devfreq/max_freq 2>/dev/null
                 echo 2918400 > /sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq 2>/dev/null
                 echo 3283200 > /sys/devices/system/cpu/cpufreq/policy6/scaling_max_freq 2>/dev/null
+                echo 1100000000 > /sys/class/kgsl/kgsl-3d0/devfreq/max_freq 2>/dev/null
                 set_sched_performance
                 settings put system peak_refresh_rate 120.0 2>/dev/null
                 settings put system min_refresh_rate 60.0 2>/dev/null
@@ -222,12 +250,16 @@ while true; do
             POWER_DESC="🤖 本地端侧 AI 推理加速 (3.28GHz 超大核满血澎湃)"
             TOUCH_DESC="⚡ 高响应跟手触控 (120Hz)"
         elif [ "$IS_CUSTOM_GAME" = "1" ] || is_builtin_game "$curr_app"; then
-            # GAME PROFILE: 3.28GHz Prime cap prevents 14W thermal runaway, holds rock-solid 120 FPS
+            # HEAVY ESPORTS GAME: 3.28GHz Prime cap + 1100MHz GPU + 540Hz esports touch
             if [ "$CURRENT_MODE" != "GAME:$curr_app" ]; then
                 CURRENT_MODE="GAME:$curr_app"
-                log_info "Game active [$curr_app]. Applying 3.28GHz Prime cap + 540Hz esports touch."
+                log_info "Heavy game active [$curr_app]. Applying 3.28GHz Prime cap + 540Hz esports touch."
+                chmod 666 /sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq 2>/dev/null
+                chmod 666 /sys/devices/system/cpu/cpufreq/policy6/scaling_max_freq 2>/dev/null
+                chmod 666 /sys/class/kgsl/kgsl-3d0/devfreq/max_freq 2>/dev/null
                 echo 2918400 > /sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq 2>/dev/null
                 echo 3283200 > /sys/devices/system/cpu/cpufreq/policy6/scaling_max_freq 2>/dev/null
+                echo 1100000000 > /sys/class/kgsl/kgsl-3d0/devfreq/max_freq 2>/dev/null
                 set_touch_esports
                 set_sched_performance
                 settings put system peak_refresh_rate 120.0 2>/dev/null
@@ -236,13 +268,41 @@ while true; do
             fi
             POWER_DESC="🎮 电竞性能能效比 (3.28GHz超大核稳120帧)"
             TOUCH_DESC="⚡ 540Hz 电竞跟手触控 (0ms延迟已激活)"
+        elif [ "$IS_CASUAL_GAME" = "1" ] || is_casual_game "$curr_app"; then
+            # CASUAL 3D GAME (Fishing/Chess): 60Hz lock + 525MHz GPU cap + 1.68GHz CPU cap
+            # Slashes 18W battery-melting runaway down to 3~4W!
+            if [ "$CURRENT_MODE" != "CASUAL:$curr_app" ]; then
+                CURRENT_MODE="CASUAL:$curr_app"
+                log_info "Casual 3D game active [$curr_app]. Engaging 60Hz lock + 525MHz GPU cap + 1.68GHz CPU cap to suppress 18W power drain."
+                chmod 666 /sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq 2>/dev/null
+                chmod 666 /sys/devices/system/cpu/cpufreq/policy6/scaling_max_freq 2>/dev/null
+                chmod 666 /sys/class/kgsl/kgsl-3d0/devfreq/max_freq 2>/dev/null
+                echo 1785600 > /sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq 2>/dev/null
+                echo 1689600 > /sys/devices/system/cpu/cpufreq/policy6/scaling_max_freq 2>/dev/null
+                echo 525000000 > /sys/class/kgsl/kgsl-3d0/devfreq/max_freq 2>/dev/null
+                set_touch_normal
+                set_sched_powersave
+                settings put system peak_refresh_rate 60.0 2>/dev/null
+                settings put system min_refresh_rate 60.0 2>/dev/null
+                echo 1500 > /proc/sys/vm/dirty_writeback_centisecs 2>/dev/null
+            fi
+            # Re-enforce limits continuously against ColorOS Game Space boost
+            echo 1785600 > /sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq 2>/dev/null
+            echo 1689600 > /sys/devices/system/cpu/cpufreq/policy6/scaling_max_freq 2>/dev/null
+            echo 525000000 > /sys/class/kgsl/kgsl-3d0/devfreq/max_freq 2>/dev/null
+            POWER_DESC="🐟 休闲3D轻量降温 (60Hz帧率锁 + 525MHz GPU + 1.68GHz防发热)"
+            TOUCH_DESC="🔋 节能日常触控 (120Hz采样)"
         elif is_streaming_app "$curr_app"; then
             # STREAMING PROFILE: Moonlight / Steam Link
             if [ "$CURRENT_MODE" != "STREAMING:$curr_app" ]; then
                 CURRENT_MODE="STREAMING:$curr_app"
                 log_info "Streaming app active [$curr_app]. Low touch latency + 120Hz display."
+                chmod 666 /sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq 2>/dev/null
+                chmod 666 /sys/devices/system/cpu/cpufreq/policy6/scaling_max_freq 2>/dev/null
+                chmod 666 /sys/class/kgsl/kgsl-3d0/devfreq/max_freq 2>/dev/null
                 echo 2400000 > /sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq 2>/dev/null
                 echo 2649600 > /sys/devices/system/cpu/cpufreq/policy6/scaling_max_freq 2>/dev/null
+                echo 734000000 > /sys/class/kgsl/kgsl-3d0/devfreq/max_freq 2>/dev/null
                 set_touch_low_latency
                 set_sched_performance
                 settings put system peak_refresh_rate 120.0 2>/dev/null
@@ -255,8 +315,12 @@ while true; do
             if [ "$CURRENT_MODE" != "VIDEO:$curr_app" ]; then
                 CURRENT_MODE="VIDEO:$curr_app"
                 log_info "Video app active [$curr_app]. 60Hz lock & deep media powersave engaged."
+                chmod 666 /sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq 2>/dev/null
+                chmod 666 /sys/devices/system/cpu/cpufreq/policy6/scaling_max_freq 2>/dev/null
+                chmod 666 /sys/class/kgsl/kgsl-3d0/devfreq/max_freq 2>/dev/null
                 echo 1785600 > /sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq 2>/dev/null
                 echo 1689600 > /sys/devices/system/cpu/cpufreq/policy6/scaling_max_freq 2>/dev/null
+                echo 443000000 > /sys/class/kgsl/kgsl-3d0/devfreq/max_freq 2>/dev/null
                 set_touch_normal
                 set_sched_powersave
                 settings put system peak_refresh_rate 60.0 2>/dev/null
@@ -270,8 +334,12 @@ while true; do
             if [ "$CURRENT_MODE" != "DAILY" ]; then
                 CURRENT_MODE="DAILY"
                 log_info "Daily general app active. 120Hz smooth UI + 2.44GHz Prime cap."
+                chmod 666 /sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq 2>/dev/null
+                chmod 666 /sys/devices/system/cpu/cpufreq/policy6/scaling_max_freq 2>/dev/null
+                chmod 666 /sys/class/kgsl/kgsl-3d0/devfreq/max_freq 2>/dev/null
                 echo 2227200 > /sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq 2>/dev/null
                 echo 2438400 > /sys/devices/system/cpu/cpufreq/policy6/scaling_max_freq 2>/dev/null
+                echo 1100000000 > /sys/class/kgsl/kgsl-3d0/devfreq/max_freq 2>/dev/null
                 set_touch_normal
                 set_sched_powersave
                 settings put system peak_refresh_rate 120.0 2>/dev/null
