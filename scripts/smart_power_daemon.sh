@@ -43,19 +43,19 @@ chmod 666 /sys/class/kgsl/kgsl-3d0/devfreq/max_freq 2>/dev/null
 
 set_touch_esports() {
     echo 1 > /proc/touchpanel/game_switch_enable 2>/dev/null
-    echo 1 > /proc/touchpanel/sensitive_level 2>/dev/null
-    echo 1 > /proc/touchpanel/smooth_level 2>/dev/null
-    resetprop -n sys.input.resample.latency 0 2>/dev/null
-    resetprop -n persist.vendor.qti.input.resampling 1 2>/dev/null
-    resetprop -n view.touch_slop 2 2>/dev/null
+    echo 0 > /proc/touchpanel/sensitive_level 2>/dev/null
+    echo 0 > /proc/touchpanel/smooth_level 2>/dev/null
+    resetprop -n sys.input.resample.latency -1 2>/dev/null
+    resetprop -n persist.vendor.qti.input.resampling 0 2>/dev/null
+    resetprop -n view.touch_slop 4 2>/dev/null
 }
 
 set_touch_low_latency() {
     echo 1 > /proc/touchpanel/game_switch_enable 2>/dev/null
-    echo 1 > /proc/touchpanel/sensitive_level 2>/dev/null
-    echo 1 > /proc/touchpanel/smooth_level 2>/dev/null
-    resetprop -n sys.input.resample.latency 0 2>/dev/null
-    resetprop -n persist.vendor.qti.input.resampling 1 2>/dev/null
+    echo 0 > /proc/touchpanel/sensitive_level 2>/dev/null
+    echo 0 > /proc/touchpanel/smooth_level 2>/dev/null
+    resetprop -n sys.input.resample.latency -1 2>/dev/null
+    resetprop -n persist.vendor.qti.input.resampling 0 2>/dev/null
     resetprop -n view.touch_slop 4 2>/dev/null
 }
 
@@ -63,7 +63,7 @@ set_touch_normal() {
     echo 0 > /proc/touchpanel/game_switch_enable 2>/dev/null
     echo 0 > /proc/touchpanel/sensitive_level 2>/dev/null
     echo 0 > /proc/touchpanel/smooth_level 2>/dev/null
-    resetprop -n sys.input.resample.latency 5 2>/dev/null
+    resetprop -n sys.input.resample.latency -1 2>/dev/null
     resetprop -n persist.vendor.qti.input.resampling 0 2>/dev/null
     resetprop -n view.touch_slop 8 2>/dev/null
 }

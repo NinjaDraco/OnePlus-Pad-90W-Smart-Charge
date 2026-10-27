@@ -29,13 +29,14 @@ settings put system single_speed_charge_state 1 2>/dev/null
 settings put system smart_charge_switch_state 0 2>/dev/null
 settings put system charge_protection_current_state 0 2>/dev/null
 
-# Activate 540Hz Touch Hardware nodes
+# Activate 540Hz Linear Raw Touch Hardware nodes (disable extrapolation overshoot)
 chmod 666 /proc/touchpanel/* 2>/dev/null
 echo 1 > /proc/touchpanel/game_switch_enable 2>/dev/null
-echo 1 > /proc/touchpanel/sensitive_level 2>/dev/null
-echo 1 > /proc/touchpanel/smooth_level 2>/dev/null
-resetprop -n sys.input.resample.latency 0 2>/dev/null
-resetprop -n view.touch_slop 2 2>/dev/null
+echo 0 > /proc/touchpanel/sensitive_level 2>/dev/null
+echo 0 > /proc/touchpanel/smooth_level 2>/dev/null
+resetprop -n sys.input.resample.latency -1 2>/dev/null
+resetprop -n persist.vendor.qti.input.resampling 0 2>/dev/null
+resetprop -n view.touch_slop 4 2>/dev/null
 
 if [ -f "$MODDIR/scripts/smart_power_daemon.sh" ]; then
     (
