@@ -139,6 +139,7 @@ log_info "OnePlus Pad Unified Smart Power & Dynamic Optimizer 2.0 started (PID: 
 
 while true; do
     rotate_log
+    ip link set dev wlan0 mtu 1460 2>/dev/null
 
     # 1. Direct sysfs battery readings (zero IPC, <1ms)
     batt_status=$(cat /sys/class/power_supply/battery/status 2>/dev/null || echo "Discharging")
@@ -269,29 +270,52 @@ while true; do
             POWER_DESC="🎮 电竞性能能效比 (3.28GHz超大核稳120帧)"
             TOUCH_DESC="⚡ 540Hz 电竞跟手触控 (0ms延迟已激活)"
         elif [ "$IS_CASUAL_GAME" = "1" ] || is_casual_game "$curr_app"; then
-            # CASUAL 3D GAME (Fishing/Chess): 60Hz lock + 525MHz GPU cap + 1.68GHz CPU cap
-            # Slashes 18W battery-melting runaway down to 3~4W!
-            if [ "$CURRENT_MODE" != "CASUAL:$curr_app" ]; then
-                CURRENT_MODE="CASUAL:$curr_app"
-                log_info "Casual 3D game active [$curr_app]. Engaging 60Hz lock + 525MHz GPU cap + 1.68GHz CPU cap to suppress 18W power drain."
-                chmod 666 /sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq 2>/dev/null
-                chmod 666 /sys/devices/system/cpu/cpufreq/policy6/scaling_max_freq 2>/dev/null
-                chmod 666 /sys/class/kgsl/kgsl-3d0/devfreq/max_freq 2>/dev/null
-                echo 1785600 > /sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq 2>/dev/null
-                echo 1689600 > /sys/devices/system/cpu/cpufreq/policy6/scaling_max_freq 2>/dev/null
-                echo 525000000 > /sys/class/kgsl/kgsl-3d0/devfreq/max_freq 2>/dev/null
-                set_touch_normal
-                set_sched_powersave
-                settings put system peak_refresh_rate 60.0 2>/dev/null
-                settings put system min_refresh_rate 60.0 2>/dev/null
-                echo 1500 > /proc/sys/vm/dirty_writeback_centisecs 2>/dev/null
+            # CASUAL 3D GAME (Fishing/Chess): Charging-Aware Dynamic Tuning
+            # - Charging: 120Hz locked + 1100MHz full GPU + 3.28GHz Prime performance
+            # - Battery: 120Hz smooth + 734MHz GPU balanced + 2.44GHz Prime cap
+            if [ "$batt_status" = "Charging" ]; then
+                if [ "$CURRENT_MODE" != "CASUAL_PLUGGED:$curr_app" ]; then
+                    CURRENT_MODE="CASUAL_PLUGGED:$curr_app"
+                    log_info "Casual 3D game active [$curr_app] (CHARGING). Unleashing 120Hz + 1100MHz GPU + 3.28GHz Prime."
+                    chmod 666 /sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq 2>/dev/null
+                    chmod 666 /sys/devices/system/cpu/cpufreq/policy6/scaling_max_freq 2>/dev/null
+                    chmod 666 /sys/class/kgsl/kgsl-3d0/devfreq/max_freq 2>/dev/null
+                    echo 2918400 > /sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq 2>/dev/null
+                    echo 3283200 > /sys/devices/system/cpu/cpufreq/policy6/scaling_max_freq 2>/dev/null
+                    echo 1100000000 > /sys/class/kgsl/kgsl-3d0/devfreq/max_freq 2>/dev/null
+                    set_touch_esports
+                    set_sched_performance
+                    settings put system peak_refresh_rate 120.0 2>/dev/null
+                    settings put system min_refresh_rate 120.0 2>/dev/null
+                    echo 500 > /proc/sys/vm/dirty_writeback_centisecs 2>/dev/null
+                fi
+                echo 2918400 > /sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq 2>/dev/null
+                echo 3283200 > /sys/devices/system/cpu/cpufreq/policy6/scaling_max_freq 2>/dev/null
+                echo 1100000000 > /sys/class/kgsl/kgsl-3d0/devfreq/max_freq 2>/dev/null
+                POWER_DESC="⚡ 捕鱼/休闲3D满血狂暴 (检测到充电中：120Hz + 1100MHz GPU 全开)"
+                TOUCH_DESC="⚡ 540Hz 电竞跟手触控 (0ms延迟)"
+            else
+                if [ "$CURRENT_MODE" != "CASUAL_BATTERY:$curr_app" ]; then
+                    CURRENT_MODE="CASUAL_BATTERY:$curr_app"
+                    log_info "Casual 3D game active [$curr_app] (BATTERY). Engaging 120Hz + 734MHz GPU + 2.44GHz Prime balanced mode."
+                    chmod 666 /sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq 2>/dev/null
+                    chmod 666 /sys/devices/system/cpu/cpufreq/policy6/scaling_max_freq 2>/dev/null
+                    chmod 666 /sys/class/kgsl/kgsl-3d0/devfreq/max_freq 2>/dev/null
+                    echo 2227200 > /sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq 2>/dev/null
+                    echo 2438400 > /sys/devices/system/cpu/cpufreq/policy6/scaling_max_freq 2>/dev/null
+                    echo 734000000 > /sys/class/kgsl/kgsl-3d0/devfreq/max_freq 2>/dev/null
+                    set_touch_normal
+                    set_sched_powersave
+                    settings put system peak_refresh_rate 120.0 2>/dev/null
+                    settings put system min_refresh_rate 60.0 2>/dev/null
+                    echo 1000 > /proc/sys/vm/dirty_writeback_centisecs 2>/dev/null
+                fi
+                echo 2227200 > /sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq 2>/dev/null
+                echo 2438400 > /sys/devices/system/cpu/cpufreq/policy6/scaling_max_freq 2>/dev/null
+                echo 734000000 > /sys/class/kgsl/kgsl-3d0/devfreq/max_freq 2>/dev/null
+                POWER_DESC="🔋 捕鱼/休闲3D离电温控 (电池供电：120Hz上限 + 734MHz GPU 平衡省电)"
+                TOUCH_DESC="🔋 节能日常触控 (120Hz采样)"
             fi
-            # Re-enforce limits continuously against ColorOS Game Space boost
-            echo 1785600 > /sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq 2>/dev/null
-            echo 1689600 > /sys/devices/system/cpu/cpufreq/policy6/scaling_max_freq 2>/dev/null
-            echo 525000000 > /sys/class/kgsl/kgsl-3d0/devfreq/max_freq 2>/dev/null
-            POWER_DESC="🐟 休闲3D轻量降温 (60Hz帧率锁 + 525MHz GPU + 1.68GHz防发热)"
-            TOUCH_DESC="🔋 节能日常触控 (120Hz采样)"
         elif is_streaming_app "$curr_app"; then
             # STREAMING PROFILE: Moonlight / Steam Link
             if [ "$CURRENT_MODE" != "STREAMING:$curr_app" ]; then
