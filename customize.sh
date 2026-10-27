@@ -16,8 +16,12 @@ if [ -f "$MODPATH/scripts/toggle_fast_charge.sh" ]; then
     cp "$MODPATH/scripts/toggle_fast_charge.sh" /data/local/tmp/toggle_fast_charge.sh 2>/dev/null
     chmod 777 /data/local/tmp/toggle_fast_charge.sh 2>/dev/null
 fi
-ui_print "- 正在激活系统极速闪充与 540Hz 电竞触控采样..."
+if [ -f "$MODPATH/casual_powersave_games.txt" ] && [ ! -f /sdcard/casual_powersave_games.txt ]; then
+    cp "$MODPATH/casual_powersave_games.txt" /sdcard/casual_powersave_games.txt 2>/dev/null
+fi
+ui_print "- 正在激活系统极速闪充与 540Hz 电竞线性触控..."
 settings put system single_speed_charge_state 1 2>/dev/null
 settings put system smart_charge_switch_state 0 2>/dev/null
-resetprop -n sys.input.resample.latency 0 2>/dev/null
+resetprop -n sys.input.resample.latency -1 2>/dev/null
+resetprop -n persist.vendor.qti.input.resampling 0 2>/dev/null
 ui_print "- 模块安装完成！重启后自动常驻守护，搭配 FastChargeToggle.apk 即可桌面一键开关满血充电！"
