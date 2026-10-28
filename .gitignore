@@ -1,0 +1,10 @@
+# Gradle & Android build artifacts
+.gradle/
+**/build/
+**/.gradle/
+**/.kotlin/
+**/local.properties
+**/.idea/
+**/*.iml
+.DS_Store
+*.log

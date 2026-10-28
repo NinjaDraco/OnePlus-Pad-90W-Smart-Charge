@@ -1,7 +1,7 @@
 id=oneplus_smart_charge_power_opt
 name=OnePlus Pad Pro 90W 智能极速充与日常/视频低功耗 + 540Hz 电竞触控优化
-version=v2.2.2
-versionCode=2220
+version=v3.0.0
+versionCode=3000
 author=NinjaDraco
-description=专为 OnePlus Pad Pro (骁龙 8 至尊版 SM8750 / 安卓 16) 定制：①智能解锁 90W 满血极速快充与温控回退；②配套桌面独立开关 APK 与控制中心磁贴；③修复触控重采样过冲导致的视角狂转 4 圈异常，还原纯净 1:1 线性 540Hz 电竞跟手触控；④彻底修复堡垒之夜掉帧随机锁 60FPS (禁用 Swappy 锁帧与 VSync 半频断崖，全开 120 帧与 Epic 画质)；⑤动态充放电智能能效调度。
+description=专为 OnePlus Pad Pro (骁龙 8 至尊版 SM8750 / 安卓 16) 定制：①智能解锁 90W 满血极速快充与温控回退；②配套全新 Material 3 玻璃液态 UI 独立工坊 App (实时整机功耗/双温控监测/原生扫描添加游戏)；③轻游戏锁 525MHz (~3.5W) 彻底消除电玩捕鱼等休闲游戏 24W 爆热与融化级掉电；④重载电竞 120Hz 澎湃全释放；⑤修复视角狂转还原 540Hz 纯净触控。
 updateJson=https://raw.githubusercontent.com/NinjaDraco/OnePlus-Pad-90W-Smart-Charge/main/update.json

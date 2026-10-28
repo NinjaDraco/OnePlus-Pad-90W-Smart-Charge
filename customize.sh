@@ -24,4 +24,4 @@ settings put system single_speed_charge_state 1 2>/dev/null
 settings put system smart_charge_switch_state 0 2>/dev/null
 resetprop -n sys.input.resample.latency -1 2>/dev/null
 resetprop -n persist.vendor.qti.input.resampling 0 2>/dev/null
-ui_print "- 模块安装完成！重启后自动常驻守护，搭配 FastChargeToggle.apk 即可桌面一键开关满血充电！"
+ui_print "- 模块安装完成！重启后自动常驻守护，搭配 SmartPowerOpt 极智温控工坊即可全面监控功耗与游戏调度！"
