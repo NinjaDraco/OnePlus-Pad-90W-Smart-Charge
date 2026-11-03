@@ -302,37 +302,68 @@ while true; do
                 TOUCH_DESC="🔋 节能日常触控 (120Hz采样)"
             fi
         elif [ "$IS_CUSTOM_GAME" = "1" ] || is_builtin_game "$curr_app"; then
-            # HEAVY ESPORTS GAME: 3.51GHz Prime cap + 1100MHz GPU + 607MHz GPU floor + 120Hz locked
+            # HEAVY ESPORTS GAME: Cold launch 120Hz lock + Continuous Anti-Throttle Watchdog
             if [ "$CURRENT_MODE" != "GAME:$curr_app" ]; then
                 CURRENT_MODE="GAME:$curr_app"
-                log_info "Heavy game active [$curr_app]. Applying 3.51GHz Prime cap + 1100MHz GPU + 120Hz esports."
+                log_info "Heavy game active [$curr_app]. Cold launch 120Hz locked & Anti-Throttle Watchdog engaged."
                 cmd game set --fps 120 "$curr_app" 2>/dev/null
                 cmd game mode custom "$curr_app" 2>/dev/null
-                chmod 666 /sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq 2>/dev/null
-                chmod 666 /sys/devices/system/cpu/cpufreq/policy6/scaling_max_freq 2>/dev/null
-                chmod 666 /sys/devices/system/cpu/cpufreq/policy6/scaling_min_freq 2>/dev/null
-                chmod 666 /sys/class/kgsl/kgsl-3d0/devfreq/max_freq 2>/dev/null
-                chmod 666 /sys/class/kgsl/kgsl-3d0/devfreq/min_freq 2>/dev/null
-                echo 2918400 > /sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq 2>/dev/null
-                echo 3513600 > /sys/devices/system/cpu/cpufreq/policy6/scaling_max_freq 2>/dev/null
-                echo 1401600 > /sys/devices/system/cpu/cpufreq/policy6/scaling_min_freq 2>/dev/null
-                echo 1100000000 > /sys/class/kgsl/kgsl-3d0/devfreq/max_freq 2>/dev/null
-                echo 607000000 > /sys/class/kgsl/kgsl-3d0/devfreq/min_freq 2>/dev/null
                 set_touch_esports
                 set_sched_performance
-                settings put secure oplus_customize_screen_refresh_rate 3 2>/dev/null
-                settings put global oplus_customize_screen_refresh_rate 3 2>/dev/null
-                settings put global oplus_max_refresh_rate 120 2>/dev/null
-                settings put system oplus_max_refresh_rate 120 2>/dev/null
-                settings put system oplus_game_refresh_rate 120 2>/dev/null
-                settings put system peak_refresh_rate 120.0 2>/dev/null
-                settings put system min_refresh_rate 120.0 2>/dev/null
-                settings put system user_refresh_rate 120.0 2>/dev/null
-                settings put global user_preferred_refresh_rate 120.0 2>/dev/null
-                cmd display set-user-preferred-display-mode 2400 3392 120.0 2>/dev/null
                 echo 500 > /proc/sys/vm/dirty_writeback_centisecs 2>/dev/null
+                
+                # Cold launch burst: rapid 120Hz display mode injection so SurfaceView inits at 120Hz
+                for _b in 1 2 3; do
+                    settings put secure oplus_customize_screen_refresh_rate 3 2>/dev/null
+                    settings put global oplus_customize_screen_refresh_rate 3 2>/dev/null
+                    settings put global oplus_max_refresh_rate 120 2>/dev/null
+                    settings put system oplus_max_refresh_rate 120 2>/dev/null
+                    settings put system oplus_game_refresh_rate 120 2>/dev/null
+                    settings put system peak_refresh_rate 120.0 2>/dev/null
+                    settings put system min_refresh_rate 120.0 2>/dev/null
+                    settings put system user_refresh_rate 120.0 2>/dev/null
+                    settings put global user_preferred_refresh_rate 120.0 2>/dev/null
+                    cmd display set-user-preferred-display-mode 2400 3392 120.0 2>/dev/null
+                done
             fi
-            POWER_DESC="🎮 电竞性能能效比 (3.51GHz超大核稳120帧)"
+
+            # Continuous active enforcement on EVERY loop cycle (Permanent 120Hz + Anti-Thermal Throttle Guard)
+            settings put system peak_refresh_rate 120.0 2>/dev/null
+            settings put system min_refresh_rate 120.0 2>/dev/null
+            settings put system user_refresh_rate 120.0 2>/dev/null
+            settings put global user_preferred_refresh_rate 120.0 2>/dev/null
+            settings put system oplus_max_refresh_rate 120 2>/dev/null
+            settings put system oplus_game_refresh_rate 120 2>/dev/null
+            settings put secure oplus_customize_screen_refresh_rate 3 2>/dev/null
+            settings put global oplus_customize_screen_refresh_rate 3 2>/dev/null
+
+            # Anti-Throttle Watchdog: force CPU and GPU above performance thresholds
+            chmod 666 /sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq 2>/dev/null
+            chmod 666 /sys/devices/system/cpu/cpufreq/policy6/scaling_max_freq 2>/dev/null
+            chmod 666 /sys/devices/system/cpu/cpufreq/policy6/scaling_min_freq 2>/dev/null
+            chmod 666 /sys/class/kgsl/kgsl-3d0/devfreq/max_freq 2>/dev/null
+            chmod 666 /sys/class/kgsl/kgsl-3d0/devfreq/min_freq 2>/dev/null
+
+            cur_p0=$(cat /sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq 2>/dev/null || echo 0)
+            if [ "$cur_p0" -lt 2400000 ] 2>/dev/null; then
+                echo 2400000 > /sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq 2>/dev/null
+            fi
+
+            cur_p6=$(cat /sys/devices/system/cpu/cpufreq/policy6/scaling_max_freq 2>/dev/null || echo 0)
+            if [ "$cur_p6" -lt 2649600 ] 2>/dev/null; then
+                echo 2649600 > /sys/devices/system/cpu/cpufreq/policy6/scaling_max_freq 2>/dev/null
+            fi
+
+            cur_gpu=$(cat /sys/class/kgsl/kgsl-3d0/devfreq/max_freq 2>/dev/null || echo 0)
+            if [ "$cur_gpu" -lt 734000000 ] 2>/dev/null; then
+                echo 832000000 > /sys/class/kgsl/kgsl-3d0/devfreq/max_freq 2>/dev/null
+            fi
+            echo 443000000 > /sys/class/kgsl/kgsl-3d0/devfreq/min_freq 2>/dev/null
+
+            # Clear charge cool down restriction while in game
+            echo 0 > /sys/devices/virtual/oplus_chg/battery/cool_down 2>/dev/null
+
+            POWER_DESC="🎮 全程 120Hz 满血不掉帧 (防锁频巡检已激活)"
             TOUCH_DESC="⚡ 540Hz 电竞跟手触控 (0ms延迟已激活)"
         elif is_streaming_app "$curr_app"; then
             # STREAMING PROFILE: Moonlight / Steam Link

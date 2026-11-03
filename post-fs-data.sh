@@ -18,3 +18,9 @@ if [ -f "$MODDIR/refresh_rate_config.xml" ]; then
     chcon u:object_r:system_file:s0 "$MODDIR/refresh_rate_config.xml" 2>/dev/null
     mount -o bind "$MODDIR/refresh_rate_config.xml" /my_product/etc/refresh_rate_config.xml 2>/dev/null
 fi
+
+# Systemless bind-mount sys_thermal_control_config.xml (Anti-Throttle & 120Hz lock under charging)
+if [ -f "$MODDIR/sys_thermal_control_config.xml" ]; then
+    chcon u:object_r:vendor_configs_file:s0 "$MODDIR/sys_thermal_control_config.xml" 2>/dev/null
+    mount -o bind "$MODDIR/sys_thermal_control_config.xml" /odm/etc/temperature_profile/sys_thermal_control_config.xml 2>/dev/null
+fi

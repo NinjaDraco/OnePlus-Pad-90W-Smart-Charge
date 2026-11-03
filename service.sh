@@ -24,6 +24,12 @@ if [ -f "$MODDIR/refresh_rate_config.xml" ]; then
     chcon u:object_r:system_data_file:s0 /data/system/refresh_rate_config.xml 2>/dev/null
 fi
 
+# Systemless bind-mount sys_thermal_control_config.xml (Anti-Throttle & 120Hz lock under charging)
+if [ -f "$MODDIR/sys_thermal_control_config.xml" ]; then
+    chcon u:object_r:vendor_configs_file:s0 "$MODDIR/sys_thermal_control_config.xml" 2>/dev/null
+    mount -o bind "$MODDIR/sys_thermal_control_config.xml" /odm/etc/temperature_profile/sys_thermal_control_config.xml 2>/dev/null
+fi
+
 # Deploy fast charge toggle script to /data/local/tmp
 if [ -f "$MODDIR/scripts/toggle_fast_charge.sh" ]; then
     cp "$MODDIR/scripts/toggle_fast_charge.sh" /data/local/tmp/toggle_fast_charge.sh 2>/dev/null
