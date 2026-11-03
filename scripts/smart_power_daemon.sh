@@ -307,7 +307,7 @@ while true; do
                 CURRENT_MODE="GAME:$curr_app"
                 log_info "Heavy game active [$curr_app]. Cold launch 120Hz locked & Anti-Throttle Watchdog engaged."
                 cmd game set --fps 120 "$curr_app" 2>/dev/null
-                cmd game mode custom "$curr_app" 2>/dev/null
+                cmd game mode standard "$curr_app" 2>/dev/null
                 set_touch_esports
                 set_sched_performance
                 echo 500 > /proc/sys/vm/dirty_writeback_centisecs 2>/dev/null
@@ -354,11 +354,9 @@ while true; do
                 echo 2649600 > /sys/devices/system/cpu/cpufreq/policy6/scaling_max_freq 2>/dev/null
             fi
 
-            cur_gpu=$(cat /sys/class/kgsl/kgsl-3d0/devfreq/max_freq 2>/dev/null || echo 0)
-            if [ "$cur_gpu" -lt 734000000 ] 2>/dev/null; then
-                echo 832000000 > /sys/class/kgsl/kgsl-3d0/devfreq/max_freq 2>/dev/null
-            fi
-            echo 443000000 > /sys/class/kgsl/kgsl-3d0/devfreq/min_freq 2>/dev/null
+            # Fully unlocked dynamic GPU frequency band: 160MHz - 1100MHz natural scaling
+            echo 160000000 > /sys/class/kgsl/kgsl-3d0/devfreq/min_freq 2>/dev/null
+            echo 1100000000 > /sys/class/kgsl/kgsl-3d0/devfreq/max_freq 2>/dev/null
 
             # Clear charge cool down restriction while in game
             echo 0 > /sys/devices/virtual/oplus_chg/battery/cool_down 2>/dev/null
