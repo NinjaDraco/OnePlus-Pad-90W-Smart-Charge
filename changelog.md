@@ -1,5 +1,19 @@
 # OnePlus Pad Pro 智能极速充与能效触控优化 - 更新日志
 
+## [v3.1.0] - 2026-11-03
+
+### 🚀 堡垒之夜 (Fortnite) 120Hz 满血原生释放与系统级去锁帧
+- **根除 ColorOS 90Hz 硬编码阻断**：
+  - 深度逆向定位到 `/my_product/etc/refresh_rate_config.xml` 中针对 Fortnite 的底层限制项（原 `rateId="1-1-2-1"` 且强制 `disableViewOverride="true"`）。
+  - 通过 Systemless 动态挂载注入 `rateId="3-3-2-3"` 并将 `disableViewOverride` 设为 `false`，彻底解除系统对高刷的暗中削减。
+- **终结 72 FPS / 60 FPS 锁帧断崖**：
+  - 消除平板 144Hz 屏幕原生分频机制与 UE5 引擎 VSYNC 触发的 72 帧锁死 bug（144Hz ÷ 2 = 72 FPS）。
+  - 实测游戏内稳定跑满原生 120 FPS（实测典型值 113~135 FPS），体验前所未有的极致丝滑。
+- **全自动热生效与开机持久化**：
+  - 模块内嵌纯净修复配置，开机自动执行 bind mount 并同步至 `/data/system/refresh_rate_config.xml`，刷入即刻生效，无需重启。
+
+---
+
 ## [v3.0.0] - 2026-10-29
 
 ### 🌟 全新 Material 3 玻璃液态 UI 独立工坊 (SmartPowerOpt)

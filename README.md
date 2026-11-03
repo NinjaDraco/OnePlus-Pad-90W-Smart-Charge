@@ -26,7 +26,12 @@
 - `sys.input.resample.latency=0` 实现 0ms 触控重采样延迟。
 - 优化触控响应阻尼与灵敏度 (`view.touch_slop=2`)，显著提升跟手度与滑动顺滑感。
 
-### 3. 🎬 视频与日常场景动态能效调度
+### 3. 🚀 堡垒之夜 (Fortnite) 120Hz 原生满血解锁与系统级去锁帧
+- **突破 ColorOS 90Hz/ViewOverride 硬编码限制**：Systemless 动态挂载修复 `/my_product/etc/refresh_rate_config.xml`，彻底解除系统针对《Fortnite》的底层削频限制与高刷屏蔽。
+- **终结 72 FPS / 60 FPS 锁帧断崖**：根除 144Hz 屏幕二分频（144Hz ÷ 2 = 72 FPS）与 UE5 引擎 VSYNC 锁帧 bug，实测稳定满血 113~135 FPS 原生超高帧。
+- **热生效与无感开机同步**：开机通过 `post-fs-data.sh` 与 `service.sh` 自动挂载至 `/my_product/etc/` 并实时热同步至 `/data/system/`，刷入即刻畅享。
+
+### 4. 🎬 视频与日常场景动态能效调度
 - **主流视频场景**（B站、YouTube、主流媒体播放器）：自动锁定 60Hz 动态刷新率，压制超大核虚高频率，大幅降低视频播放功耗。
 - **日常使用场景**：保持 120Hz/144Hz 流畅交互与极速触控。
 - **息屏待机场景**：自动切入深度 Doze 休眠，清理无效唤醒，显著提升待机续航。
@@ -37,13 +42,13 @@
 
 > [!IMPORTANT]
 > **请在 [Releases 发布页面](https://github.com/NinjaDraco/OnePlus-Pad-90W-Smart-Charge/releases) 或本仓库 `release/` 目录下载打包好的文件！**
-> 1. **Magisk 模块刷机包**：`release/OnePlus_Pad_90W_Smart_Charge_v2.1.0.zip`
+> 1. **Magisk 模块刷机包**：`release/OnePlus_Pad_90W_Smart_Charge_v3.1.0.zip`
 > 2. **桌面开关 APK**：`release/FastChargeToggle.apk`（安装后桌面出现「⚡满血快充」开关）
 > 
 > 切勿直接点击 GitHub 网页顶部的绿色 `Code -> Download ZIP`，网页打包源码带有多余顶层文件夹会导致 Magisk 报错 `specified file not found in archive`。
 
 ### 步骤 1：刷入 Magisk / KSU 模块
-1. 下载 `OnePlus_Pad_90W_Smart_Charge_v2.1.0.zip`。
+1. 下载 `OnePlus_Pad_90W_Smart_Charge_v3.1.0.zip`。
 2. 打开 **Magisk** / **KernelSU** / **APatch** 管理器 -> 模块 -> 从本地安装。
 3. 安装完成后重启平板。
 

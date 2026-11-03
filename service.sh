@@ -15,6 +15,15 @@ if [ -f "$MODDIR/sepolicy.rule" ]; then
     magiskpolicy --apply "$MODDIR/sepolicy.rule" --live 2>/dev/null
 fi
 
+# Systemless bind-mount refresh_rate_config.xml & sync to /data/system for dynamic framework detection
+if [ -f "$MODDIR/refresh_rate_config.xml" ]; then
+    chcon u:object_r:system_file:s0 "$MODDIR/refresh_rate_config.xml" 2>/dev/null
+    mount -o bind "$MODDIR/refresh_rate_config.xml" /my_product/etc/refresh_rate_config.xml 2>/dev/null
+    cp -f "$MODDIR/refresh_rate_config.xml" /data/system/refresh_rate_config.xml 2>/dev/null
+    chown system:system /data/system/refresh_rate_config.xml 2>/dev/null
+    chcon u:object_r:system_data_file:s0 /data/system/refresh_rate_config.xml 2>/dev/null
+fi
+
 # Deploy fast charge toggle script to /data/local/tmp
 if [ -f "$MODDIR/scripts/toggle_fast_charge.sh" ]; then
     cp "$MODDIR/scripts/toggle_fast_charge.sh" /data/local/tmp/toggle_fast_charge.sh 2>/dev/null
