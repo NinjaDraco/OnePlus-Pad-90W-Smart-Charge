@@ -307,7 +307,7 @@ while true; do
                 CURRENT_MODE="GAME:$curr_app"
                 log_info "Heavy game active [$curr_app]. Cold launch 120Hz locked & Anti-Throttle Watchdog engaged."
                 cmd game set --fps 120 "$curr_app" 2>/dev/null
-                cmd game mode standard "$curr_app" 2>/dev/null
+                cmd game mode custom "$curr_app" 2>/dev/null
                 set_touch_esports
                 set_sched_performance
                 echo 500 > /proc/sys/vm/dirty_writeback_centisecs 2>/dev/null

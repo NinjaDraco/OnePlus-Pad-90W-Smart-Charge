@@ -24,6 +24,12 @@ if [ -f "$MODDIR/refresh_rate_config.xml" ]; then
     chcon u:object_r:system_data_file:s0 /data/system/refresh_rate_config.xml 2>/dev/null
 fi
 
+# Systemless bind-mount mixer_paths.xml (Speaker + Headphone Hardware Boost)
+if [ -f "$MODDIR/mixer_paths.xml" ]; then
+    chcon u:object_r:vendor_configs_file:s0 "$MODDIR/mixer_paths.xml" 2>/dev/null
+    mount -o bind "$MODDIR/mixer_paths.xml" /odm/etc/mixer_paths.xml 2>/dev/null
+fi
+
 # Systemless bind-mount sys_thermal_control_config.xml (Anti-Throttle & 120Hz lock under charging)
 if [ -f "$MODDIR/sys_thermal_control_config.xml" ]; then
     chcon u:object_r:vendor_configs_file:s0 "$MODDIR/sys_thermal_control_config.xml" 2>/dev/null
@@ -37,7 +43,6 @@ if [ -f "$MODDIR/scripts/toggle_fast_charge.sh" ]; then
 fi
 
 # Ensure user preferred 315 DPI remains permanent
-wm density 315 2>/dev/null
 
 # Activate Fast Charging triggers
 settings put system single_speed_charge_state 1 2>/dev/null

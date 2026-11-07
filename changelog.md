@@ -1,4 +1,23 @@
-# OnePlus Pad Pro 智能极速充与能效触控优化 - 更新日志
+# OnePlus Pad 3 / Pad Pro 智能极速充与能效触控优化 - 更新日志
+
+## [v3.3.0] - 2026-11-07
+
+### 📱 正式适配 OnePlus Pad 3 (OPD2415 国际版 / Pad Pro, 骁龙 8 至尊版 SM8750)
+- **设备官方命名校准**：
+  - 明确标识适配设备为 **OnePlus Pad 3 (OPD2415 国际版 / Pad Pro)**，搭载高通骁龙 8 至尊版 (SM8750) 与 ColorOS 15~16。
+- **6 扬声器 ALSA 硬件硬解 +5dB 满血推力释放**：
+  - 内置定制优化版 `/odm/etc/mixer_paths.xml`，开机通过 Magisk Systemless bind-mount 无侵入挂载。
+  - 将高通音频 Codec 的 `RX_RX0 / RX_RX1 / RX_RX2` 硬件数字音量由默认 84 (0dB) 直接推升至 **94 (+5dB)**，驱动 Awinic 6 扬声器矩阵以真正满血功率放音。
+  - 耳机模拟增益满格设定（24/24）。
+  - 执行 `ro.oplus.audio.thermal_control=0`，彻底剥离 ColorOS 系统温控发热时暗中降低扬声器功率的音量斩杀机制。
+- **杜绝屏幕跳 144Hz 导致的 72 FPS VSYNC 半频锁死**：
+  - 将刷新率映射全面升级为 `rateId="3-3-3-3"`（覆盖 auto、90Hz、60Hz、120Hz 全档位）。
+  - 无论系统处于智能切换还是固定刷新率，检测到高刷游戏时死死锁定 Mode 1 (120Hz)，终结 144Hz ÷ 2 = 72 FPS 偶发锁频。
+  - 自动向 Android GameManager 注册 `cmd game mode custom --fps 120`，无缝挂接 SurfaceFlinger 底层 `GameFrameRateOverrides`。
+- **移除不合理的 DPI 强制覆盖**：
+  - 剔除旧脚本中残留的 315 DPI 缩放覆盖，完全尊重并回归系统原生 420 黄金比例。
+
+---
 
 ## [v3.2.0] - 2026-11-04
 

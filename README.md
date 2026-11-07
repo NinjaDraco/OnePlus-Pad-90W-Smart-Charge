@@ -1,6 +1,6 @@
-# OnePlus Pad Pro 90W 智能极速充与低功耗 + 540Hz 触控优化模块
+# OnePlus Pad 3 / Pad Pro 90W 智能极速充与低功耗 + 540Hz 触控 + 120Hz 满血防锁帧 + 满血扬声器模块
 
-专为 **OnePlus Pad Pro / OnePlus Pad 2 (骁龙 8 至尊版 SM8750 / 骁龙 8 Gen 3)** 定制的 Magisk / KernelSU / APatch 模块。
+专为 **OnePlus Pad 3 (OPD2415 国际版) / OnePlus Pad Pro (骁龙 8 至尊版 SM8750 / ColorOS 15~16)** 定制的 Magisk / KernelSU / APatch 模块。
 
 ---
 
@@ -31,7 +31,12 @@
 - **终结 72 FPS / 60 FPS 锁帧断崖**：根除 144Hz 屏幕二分频（144Hz ÷ 2 = 72 FPS）与 UE5 引擎 VSYNC 锁帧 bug，实测稳定满血 113~135 FPS 原生超高帧。
 - **热生效与无感开机同步**：开机通过 `post-fs-data.sh` 与 `service.sh` 自动挂载至 `/my_product/etc/` 并实时热同步至 `/data/system/`，刷入即刻畅享。
 
-### 4. 🎬 视频与日常场景动态能效调度
+### 4. 🔊 6 扬声器 ALSA 硬件硬解 +5dB 满血推力释放
+- **Systemless 动态挂载 `/odm/etc/mixer_paths.xml`**：开机自动接管高通 WCD/Soundwire Codec 硬件数字增益，默认直接推升至 `94`（+5dB 强劲推力），充分发挥 Awinic 6 扬声器硬件声学矩阵潜力。
+- **耳机模拟增益满格设定**：提升至满格 24/24，兼顾高阻抗外接有线耳机。
+- **解除温控音量压制**：自动执行 `ro.oplus.audio.thermal_control=0`，杜绝 ColorOS 游戏或长时间外放时暗中压制削减扬声器功率。
+
+### 5. 🎬 视频与日常场景动态能效调度
 - **主流视频场景**（B站、YouTube、主流媒体播放器）：自动锁定 60Hz 动态刷新率，压制超大核虚高频率，大幅降低视频播放功耗。
 - **日常使用场景**：保持 120Hz/144Hz 流畅交互与极速触控。
 - **息屏待机场景**：自动切入深度 Doze 休眠，清理无效唤醒，显著提升待机续航。
@@ -42,13 +47,13 @@
 
 > [!IMPORTANT]
 > **请在 [Releases 发布页面](https://github.com/NinjaDraco/OnePlus-Pad-90W-Smart-Charge/releases) 或本仓库 `release/` 目录下载打包好的文件！**
-> 1. **Magisk 模块刷机包**：`release/OnePlus_Pad_90W_Smart_Charge_v3.1.0.zip`
+> 1. **Magisk 模块刷机包**：`release/OnePlus_Pad_90W_Smart_Charge_v3.3.0.zip`
 > 2. **桌面开关 APK**：`release/FastChargeToggle.apk`（安装后桌面出现「⚡满血快充」开关）
 > 
 > 切勿直接点击 GitHub 网页顶部的绿色 `Code -> Download ZIP`，网页打包源码带有多余顶层文件夹会导致 Magisk 报错 `specified file not found in archive`。
 
 ### 步骤 1：刷入 Magisk / KSU 模块
-1. 下载 `OnePlus_Pad_90W_Smart_Charge_v3.1.0.zip`。
+1. 下载 `OnePlus_Pad_90W_Smart_Charge_v3.3.0.zip`。
 2. 打开 **Magisk** / **KernelSU** / **APatch** 管理器 -> 模块 -> 从本地安装。
 3. 安装完成后重启平板。
 
