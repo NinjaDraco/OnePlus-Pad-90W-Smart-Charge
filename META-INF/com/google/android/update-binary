@@ -2,7 +2,10 @@
 #################
 # Magisk Module #
 #################
-exec /data/adb/magisk/busybox ash -c '
+if [ -x /data/adb/magisk/busybox ] && [ -z "$_BB_WRAPPED" ]; then
+    export _BB_WRAPPED=1
+    exec /data/adb/magisk/busybox ash "$0" "$@"
+fi
 OUTFD=$2
 ZIPFILE="$3"
 if [ -f /data/adb/magisk/util_functions.sh ]; then
@@ -15,4 +18,3 @@ else
     echo "! Magisk / KernelSU / APatch not detected"
     exit 1
 fi
-'
