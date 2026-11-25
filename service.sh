@@ -66,6 +66,7 @@ resetprop -n view.touch_slop 4 2>/dev/null
 echo 60 > /proc/sys/vm/swappiness 2>/dev/null
 
 if [ -f "$MODDIR/scripts/smart_power_daemon.sh" ]; then
+    rm -f /data/local/tmp/smart_power_daemon.pid 2>/dev/null
     (
         while :; do
             if [ ! -f "$MODDIR/scripts/smart_power_daemon.sh" ] || [ -f "$MODDIR/disable" ] || [ -f "$MODDIR/remove" ]; then
