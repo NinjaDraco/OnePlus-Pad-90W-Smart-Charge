@@ -45,27 +45,18 @@ set_touch_esports() {
     echo 1 > /proc/touchpanel/game_switch_enable 2>/dev/null
     echo 0 > /proc/touchpanel/sensitive_level 2>/dev/null
     echo 0 > /proc/touchpanel/smooth_level 2>/dev/null
-    resetprop -n sys.input.resample.latency -1 2>/dev/null
-    resetprop -n persist.vendor.qti.input.resampling 0 2>/dev/null
-    resetprop -n view.touch_slop 4 2>/dev/null
 }
 
 set_touch_low_latency() {
     echo 1 > /proc/touchpanel/game_switch_enable 2>/dev/null
     echo 0 > /proc/touchpanel/sensitive_level 2>/dev/null
     echo 0 > /proc/touchpanel/smooth_level 2>/dev/null
-    resetprop -n sys.input.resample.latency -1 2>/dev/null
-    resetprop -n persist.vendor.qti.input.resampling 0 2>/dev/null
-    resetprop -n view.touch_slop 4 2>/dev/null
 }
 
 set_touch_normal() {
     echo 0 > /proc/touchpanel/game_switch_enable 2>/dev/null
     echo 0 > /proc/touchpanel/sensitive_level 2>/dev/null
     echo 0 > /proc/touchpanel/smooth_level 2>/dev/null
-    resetprop -n sys.input.resample.latency -1 2>/dev/null
-    resetprop -n persist.vendor.qti.input.resampling 0 2>/dev/null
-    resetprop -n view.touch_slop 8 2>/dev/null
 }
 
 set_sched_performance() {
@@ -74,6 +65,9 @@ set_sched_performance() {
         [ -f "$w/sched_upmigrate" ] && echo 60 > "$w/sched_upmigrate" 2>/dev/null
         [ -f "$w/sched_boost" ] && echo 1 > "$w/sched_boost" 2>/dev/null
     done
+    for scx_tl in /sys/devices/system/cpu/cpufreq/policy0/scx/target_loads /sys/devices/system/cpu/cpufreq/policy6/scx/target_loads; do
+        [ -f "$scx_tl" ] && echo 72 > "$scx_tl" 2>/dev/null
+    done
 }
 
 set_sched_powersave() {
@@ -81,6 +75,9 @@ set_sched_powersave() {
         [ -f "$w/sched_downmigrate" ] && echo 60 > "$w/sched_downmigrate" 2>/dev/null
         [ -f "$w/sched_upmigrate" ] && echo 85 > "$w/sched_upmigrate" 2>/dev/null
         [ -f "$w/sched_boost" ] && echo 0 > "$w/sched_boost" 2>/dev/null
+    done
+    for scx_tl in /sys/devices/system/cpu/cpufreq/policy0/scx/target_loads /sys/devices/system/cpu/cpufreq/policy6/scx/target_loads; do
+        [ -f "$scx_tl" ] && echo 90 > "$scx_tl" 2>/dev/null
     done
 }
 
@@ -135,11 +132,12 @@ is_casual_game() {
 }
 
 CURRENT_MODE=""
+CHARGING_SETTINGS_APPLIED=0
+ip link set dev wlan0 mtu 1460 2>/dev/null
 log_info "OnePlus Pad Unified Smart Power & Dynamic Optimizer 2.0 started (PID: $$)."
 
 while true; do
     rotate_log
-    ip link set dev wlan0 mtu 1460 2>/dev/null
 
     # 1. Direct sysfs battery readings (zero IPC, <1ms)
     batt_status=$(cat /sys/class/power_supply/battery/status 2>/dev/null || echo "Discharging")
@@ -154,11 +152,14 @@ while true; do
 
     # 2. Fast Charging Logic with Desktop Switch Integration
     if [ "$batt_status" = "Charging" ]; then
-        if [ -f "/data/local/tmp/super_charge_unlocked" ]; then
-            # 桌面开关处于开启状态：锁定 0 档温控，彻底解除亮屏降频
+        if [ "$CHARGING_SETTINGS_APPLIED" != "1" ]; then
             settings put system single_speed_charge_state 1 2>/dev/null
             settings put system smart_charge_switch_state 0 2>/dev/null
             settings put system charge_protection_current_state 0 2>/dev/null
+            CHARGING_SETTINGS_APPLIED=1
+        fi
+        if [ -f "/data/local/tmp/super_charge_unlocked" ]; then
+            # 桌面开关处于开启状态：锁定 0 档温控，彻底解除亮屏降频
             if [ "$batt_temp_raw" -lt 480 ]; then
                 echo 0 > /sys/devices/virtual/oplus_chg/battery/cool_down 2>/dev/null
                 echo 0 > /sys/class/oplus_chg/battery/cool_down 2>/dev/null
@@ -169,10 +170,6 @@ while true; do
             fi
         else
             # 桌面开关处于关闭状态：正常温控保护策略
-            settings put system single_speed_charge_state 1 2>/dev/null
-            settings put system smart_charge_switch_state 0 2>/dev/null
-            settings put system charge_protection_current_state 0 2>/dev/null
-
             if [ "$batt_temp_raw" -lt 420 ]; then
                 echo 0 > /sys/devices/virtual/oplus_chg/battery/cool_down 2>/dev/null
                 CHARGE_DESC="⚡ 80W 极速闪充 (满血输出)"
@@ -185,6 +182,7 @@ while true; do
             fi
         fi
     else
+        CHARGING_SETTINGS_APPLIED=0
         echo 0 > /sys/devices/virtual/oplus_chg/battery/cool_down 2>/dev/null
         CHARGE_DESC="🔋 未在充电 (正常放电)"
     fi
@@ -309,7 +307,7 @@ while true; do
                 TOUCH_DESC="🔋 节能日常触控 (120Hz采样)"
             fi
         elif [ "$IS_CUSTOM_GAME" = "1" ] || is_builtin_game "$curr_app"; then
-            # HEAVY ESPORTS GAME: Cold launch 120Hz lock + Continuous Anti-Throttle Watchdog
+            # HEAVY ESPORTS GAME: Cold launch 120Hz lock + Anti-Throttle Watchdog
             if [ "$CURRENT_MODE" != "GAME:$curr_app" ]; then
                 CURRENT_MODE="GAME:$curr_app"
                 log_info "Heavy game active [$curr_app]. Cold launch 120Hz locked & Anti-Throttle Watchdog engaged."
@@ -318,7 +316,16 @@ while true; do
                 set_touch_esports
                 set_sched_performance
                 echo 500 > /proc/sys/vm/dirty_writeback_centisecs 2>/dev/null
-                
+                chmod 666 /sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq 2>/dev/null
+                chmod 666 /sys/devices/system/cpu/cpufreq/policy6/scaling_max_freq 2>/dev/null
+                chmod 666 /sys/devices/system/cpu/cpufreq/policy6/scaling_min_freq 2>/dev/null
+                chmod 666 /sys/class/kgsl/kgsl-3d0/devfreq/max_freq 2>/dev/null
+                chmod 666 /sys/class/kgsl/kgsl-3d0/devfreq/min_freq 2>/dev/null
+                echo 3532800 > /sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq 2>/dev/null
+                echo 4320000 > /sys/devices/system/cpu/cpufreq/policy6/scaling_max_freq 2>/dev/null
+                echo 160000000 > /sys/class/kgsl/kgsl-3d0/devfreq/min_freq 2>/dev/null
+                echo 1100000000 > /sys/class/kgsl/kgsl-3d0/devfreq/max_freq 2>/dev/null
+
                 # Cold launch burst: rapid 120Hz display mode injection so SurfaceView inits at 120Hz
                 for _b in 1 2 3; do
                     settings put secure oplus_customize_screen_refresh_rate 3 2>/dev/null
@@ -334,36 +341,18 @@ while true; do
                 done
             fi
 
-            # Continuous active enforcement on EVERY loop cycle (Permanent 120Hz + Anti-Thermal Throttle Guard)
-            settings put system peak_refresh_rate 120.0 2>/dev/null
-            settings put system min_refresh_rate 120.0 2>/dev/null
-            settings put system user_refresh_rate 120.0 2>/dev/null
-            settings put global user_preferred_refresh_rate 120.0 2>/dev/null
-            settings put system oplus_max_refresh_rate 120 2>/dev/null
-            settings put system oplus_game_refresh_rate 120 2>/dev/null
-            settings put secure oplus_customize_screen_refresh_rate 3 2>/dev/null
-            settings put global oplus_customize_screen_refresh_rate 3 2>/dev/null
-
-            # Anti-Throttle Watchdog: force CPU and GPU above performance thresholds
-            chmod 666 /sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq 2>/dev/null
-            chmod 666 /sys/devices/system/cpu/cpufreq/policy6/scaling_max_freq 2>/dev/null
-            chmod 666 /sys/devices/system/cpu/cpufreq/policy6/scaling_min_freq 2>/dev/null
-            chmod 666 /sys/class/kgsl/kgsl-3d0/devfreq/max_freq 2>/dev/null
-            chmod 666 /sys/class/kgsl/kgsl-3d0/devfreq/min_freq 2>/dev/null
-
+            # Anti-Throttle Watchdog (sysfs-only, zero per-loop IPC spam)
             cur_p0=$(cat /sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq 2>/dev/null || echo 0)
-            if [ "$cur_p0" -lt 2400000 ] 2>/dev/null; then
-                echo 2400000 > /sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq 2>/dev/null
+            if [ "$cur_p0" -lt 3072000 ] 2>/dev/null; then
+                chmod 666 /sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq 2>/dev/null
+                echo 3532800 > /sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq 2>/dev/null
             fi
 
             cur_p6=$(cat /sys/devices/system/cpu/cpufreq/policy6/scaling_max_freq 2>/dev/null || echo 0)
-            if [ "$cur_p6" -lt 2649600 ] 2>/dev/null; then
-                echo 2649600 > /sys/devices/system/cpu/cpufreq/policy6/scaling_max_freq 2>/dev/null
+            if [ "$cur_p6" -lt 4089600 ] 2>/dev/null; then
+                chmod 666 /sys/devices/system/cpu/cpufreq/policy6/scaling_max_freq 2>/dev/null
+                echo 4320000 > /sys/devices/system/cpu/cpufreq/policy6/scaling_max_freq 2>/dev/null
             fi
-
-            # Fully unlocked dynamic GPU frequency band: 160MHz - 1100MHz natural scaling
-            echo 160000000 > /sys/class/kgsl/kgsl-3d0/devfreq/min_freq 2>/dev/null
-            echo 1100000000 > /sys/class/kgsl/kgsl-3d0/devfreq/max_freq 2>/dev/null
 
             # Clear charge cool down restriction while in game
             echo 0 > /sys/devices/virtual/oplus_chg/battery/cool_down 2>/dev/null

@@ -47,14 +47,14 @@
 
 > [!IMPORTANT]
 > **请在 [Releases 发布页面](https://github.com/NinjaDraco/OnePlus-Pad-90W-Smart-Charge/releases) 或本仓库 `release/` 目录下载打包好的文件！**
-> 1. **Magisk 模块刷机包**：`release/OnePlus_Pad3_SmartCharge_PowerOpt_v3.4.0.zip`
+> 1. **Magisk 模块刷机包**：`release/OnePlus_Pad3_SmartCharge_PowerOpt_v3.4.1.zip`
 > 2. **桌面开关 APK**：`release/FastChargeToggle.apk`（安装后桌面出现「⚡满血快充」开关）
 > 3. **《Fortnite》专项 120Hz 协同模块（可选）**：可与 [Fortnite-120Hz-Boost](https://github.com/NinjaDraco/Fortnite-120Hz-Boost) 无缝共存，检测到该模块启用时自动让渡控制权并保留 90W 智能充电保护。
 > 
 > 切勿直接点击 GitHub 网页顶部的绿色 `Code -> Download ZIP`，网页打包源码带有多余顶层文件夹会导致 Magisk 报错 `specified file not found in archive`。
 
 ### 步骤 1：刷入 Magisk / KSU 模块
-1. 下载 `OnePlus_Pad3_SmartCharge_PowerOpt_v3.4.0.zip`。
+1. 下载 `OnePlus_Pad3_SmartCharge_PowerOpt_v3.4.1.zip`。
 2. 打开 **Magisk** / **KernelSU** / **APatch** 管理器 -> 模块 -> 从本地安装。
 3. 安装完成后重启平板。
 

@@ -1,5 +1,13 @@
 # OnePlus Pad 3 / Pad Pro 智能极速充与能效触控优化 - 更新日志
 
+## [v3.4.1] - 2026-11-25
+
+### 🐛 Bug 修复与调度/内存能效优化
+- **修复其他重度游戏 (`GAME:$curr_app`) 锁频 bug**：进入游戏时完整释放 `policy0`（`3.53GHz`）与 `policy6`（`4.32GHz`），防降频巡检阈值同步提升至 `3.07GHz / 4.09GHz`，不再从日常/视频切入重度游戏后被误锁在 `2.40GHz / 2.65GHz`。
+- **消除每 3 秒无效 IPC 唤醒**：将 `ip link set dev wlan0 mtu 1460`、充电 `settings put` 与游戏刷新率 `settings put` 移出 3 秒轮询，仅在状态切换时执行一次；移除 `set_touch_*` 中重复的 `resetprop` 调用。
+- **补全 `scx` 调度器支持**：`set_sched_performance` / `set_sched_powersave` 同步调整 `scx/target_loads`（`72` / `90`）。
+- **内存换页优化**：开机自动设置 `vm.swappiness=60`，降低 ZRAM 无谓压缩开销。
+
 ## [v3.4.0] - 2026-11-25
 
 ### 🤝 深度协同适配 [Fortnite-120Hz-Boost](https://github.com/NinjaDraco/Fortnite-120Hz-Boost)（独立/协同双模式兼容）

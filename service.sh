@@ -63,6 +63,7 @@ echo 0 > /proc/touchpanel/smooth_level 2>/dev/null
 resetprop -n sys.input.resample.latency -1 2>/dev/null
 resetprop -n persist.vendor.qti.input.resampling 0 2>/dev/null
 resetprop -n view.touch_slop 4 2>/dev/null
+echo 60 > /proc/sys/vm/swappiness 2>/dev/null
 
 if [ -f "$MODDIR/scripts/smart_power_daemon.sh" ]; then
     (
