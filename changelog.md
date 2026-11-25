@@ -1,5 +1,19 @@
 # OnePlus Pad 3 / Pad Pro 智能极速充与能效触控优化 - 更新日志
 
+## [v3.4.0] - 2026-11-25
+
+### 🤝 深度协同适配 [Fortnite-120Hz-Boost](https://github.com/NinjaDraco/Fortnite-120Hz-Boost)（独立/协同双模式兼容）
+- **条件让渡机制 (`FORTNITE_BYPASS`)**：
+  - 在 `smart_power_daemon.sh` 中新增条件式让渡分支：检测到已安装且启用 `fortnite_120hz_boost` 模块时，自动在 `com.epicgames.fortnite` 前台期间让出 CPU/GPU/调度/刷新率/触控控制权（`FORTNITE_BYPASS`），同时保留 90W 智能充电温控保护；若未安装或已禁用 `fortnite_120hz_boost`，则自动回落为本模块内置的重度游戏 120Hz 守护策略，实现单装/混装双兼容。
+- **消除 `/proc/mounts` 重复挂载与配置覆盖冲突**：
+  - 为 `post-fs-data.sh`、`service.sh`、`customize.sh` 中的 `/my_product/etc/refresh_rate_config.xml`、`/odm/etc/temperature_profile/sys_thermal_control_config.xml` 与 `/odm/etc/mixer_paths.xml` 全面补齐 `/proc/mounts` 防重挂守卫。
+  - 当 `fortnite_120hz_boost` 处于启用状态时，`service.sh` 与 `customize.sh` 自动跳过覆写 `/data/system/refresh_rate_config.xml`。
+- **修复温控表 `maxCpuCore="-1,0"` 核数斩杀与对齐 `refresh_rate_config.xml`**：
+  - 修复 `sys_thermal_control_config.xml` 中 `level 10` 与 `level 13` 的 `maxCpuCore="-1,0"` / `boostCpuCoreCeiling="-1,0"` 导致的超大核离线锁死，全面更新为 `maxCpuCore="-1,-1"` / `boostCpuCoreCeiling="-1,-1"` 并释放完整 `thermal_cpulevel` 频点上限。
+  - 同步 `refresh_rate_config.xml` 中 `com.epicgames.fortnite` 为 `rateId="3-3-3-3" disableViewOverride="true" adfr="false"`，与 `v3.3.0` 设计目标一致。
+
+---
+
 ## [v3.3.0] - 2026-11-07
 
 ### 📱 正式适配 OnePlus Pad 3 (OPD2415 国际版 / Pad Pro, 骁龙 8 至尊版 SM8750)

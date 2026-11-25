@@ -250,6 +250,13 @@ while true; do
             fi
             POWER_DESC="🤖 本地端侧 AI 推理加速 (3.28GHz 超大核满血澎湃)"
             TOUCH_DESC="⚡ 高响应跟手触控 (120Hz)"
+        elif [ "$curr_app" = "com.epicgames.fortnite" ] && [ -d "/data/adb/modules/fortnite_120hz_boost" ] && [ ! -f "/data/adb/modules/fortnite_120hz_boost/disable" ] && [ ! -f "/data/adb/modules/fortnite_120hz_boost/remove" ]; then
+            if [ "$CURRENT_MODE" != "FORTNITE_BYPASS" ]; then
+                CURRENT_MODE="FORTNITE_BYPASS"
+                log_info "Fortnite active [$curr_app]. Yielding CPU/GPU/sched/display/touch control to fortnite_120hz_boost."
+            fi
+            POWER_DESC="🎮 Fortnite 专属模式 (由 fortnite_120hz_boost 接管)"
+            TOUCH_DESC="⚡ Fortnite 独立 540Hz 触控接管"
         elif [ "$IS_CASUAL_GAME" = "1" ] || is_casual_game "$curr_app"; then
             # CASUAL 3D GAME (Fishing/Chess): Charging-Aware Dynamic Tuning
             # - Charging: 120Hz locked + 607MHz GPU cap + 2.44GHz Prime cap (Strictly prevents 24W overheating while charging)

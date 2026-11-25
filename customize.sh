@@ -14,15 +14,20 @@ fi
 if [ -f "$MODPATH/refresh_rate_config.xml" ]; then
     ui_print "- 正在注入 120Hz 高刷配置 (解锁 Fortnite 等 90Hz/ViewOverride 锁帧)..."
     chcon u:object_r:system_file:s0 "$MODPATH/refresh_rate_config.xml" 2>/dev/null
-    mount -o bind "$MODPATH/refresh_rate_config.xml" /my_product/etc/refresh_rate_config.xml 2>/dev/null
-    cp -f "$MODPATH/refresh_rate_config.xml" /data/system/refresh_rate_config.xml 2>/dev/null
-    chown system:system /data/system/refresh_rate_config.xml 2>/dev/null
-    chcon u:object_r:system_data_file:s0 /data/system/refresh_rate_config.xml 2>/dev/null
+    grep -q " /my_product/etc/refresh_rate_config.xml " /proc/mounts || \
+        mount -o bind "$MODPATH/refresh_rate_config.xml" /my_product/etc/refresh_rate_config.xml 2>/dev/null
+    if [ ! -d "/data/adb/modules/fortnite_120hz_boost" ] || [ -f "/data/adb/modules/fortnite_120hz_boost/disable" ] || [ -f "/data/adb/modules/fortnite_120hz_boost/remove" ]; then
+        cp -f "$MODPATH/refresh_rate_config.xml" /data/system/refresh_rate_config.xml 2>/dev/null
+        chown system:system /data/system/refresh_rate_config.xml 2>/dev/null
+        chmod 0644 /data/system/refresh_rate_config.xml 2>/dev/null
+        chcon u:object_r:system_data_file:s0 /data/system/refresh_rate_config.xml 2>/dev/null
+    fi
 fi
 if [ -f "$MODPATH/sys_thermal_control_config.xml" ]; then
     ui_print "- 正在注入防降频温控表 (解除边充边玩 60Hz 与 1152MHz 锁帧)..."
     chcon u:object_r:vendor_configs_file:s0 "$MODPATH/sys_thermal_control_config.xml" 2>/dev/null
-    mount -o bind "$MODPATH/sys_thermal_control_config.xml" /odm/etc/temperature_profile/sys_thermal_control_config.xml 2>/dev/null
+    grep -q " /odm/etc/temperature_profile/sys_thermal_control_config.xml " /proc/mounts || \
+        mount -o bind "$MODPATH/sys_thermal_control_config.xml" /odm/etc/temperature_profile/sys_thermal_control_config.xml 2>/dev/null
 fi
 ui_print "- 正在部署独立快充开关脚本..."
 if [ -f "$MODPATH/scripts/toggle_fast_charge.sh" ]; then

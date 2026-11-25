@@ -2196,7 +2196,7 @@
   <item package="com.netease.allstar.nearme.gamecenter" rateId="3-1-2-3" disableViewOverride="true"/> <!--全明星街球派对-->
   <item package="com.netease.allstar" rateId="3-1-2-3" disableViewOverride="true"/> <!--全明星街球派对官服-->
   <item package="com.riotgames.league.wildrift" rateId="3-1-2-3" disableViewOverride="true" adfr="true" />  <!--League of Legends: Wild Rift-->
-  <item package="com.epicgames.fortnite" rateId="3-3-2-3" disableViewOverride="false" />  <!--Fortnite-->
+  <item package="com.epicgames.fortnite" rateId="3-3-3-3" disableViewOverride="true" adfr="false" />  <!--Fortnite-->
   <item package="com.garena.game.codm" rateId="1-1-2-1" disableViewOverride="true"  />  <!--Call of Duty®: Mobile - Garena-->
   <item package="com.supercell.clashroyale" rateId="3-1-2-3" disableViewOverride="true" />  <!--Clash Royale-->
   <item package="com.tfgco.games.sports.free.tennis.clash" disableViewOverride="true" rateId="4-2-2-4" />  <!--Tennis Clash-->

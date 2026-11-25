@@ -18,22 +18,28 @@ fi
 # Systemless bind-mount refresh_rate_config.xml & sync to /data/system for dynamic framework detection
 if [ -f "$MODDIR/refresh_rate_config.xml" ]; then
     chcon u:object_r:system_file:s0 "$MODDIR/refresh_rate_config.xml" 2>/dev/null
-    mount -o bind "$MODDIR/refresh_rate_config.xml" /my_product/etc/refresh_rate_config.xml 2>/dev/null
-    cp -f "$MODDIR/refresh_rate_config.xml" /data/system/refresh_rate_config.xml 2>/dev/null
-    chown system:system /data/system/refresh_rate_config.xml 2>/dev/null
-    chcon u:object_r:system_data_file:s0 /data/system/refresh_rate_config.xml 2>/dev/null
+    grep -q " /my_product/etc/refresh_rate_config.xml " /proc/mounts || \
+        mount -o bind "$MODDIR/refresh_rate_config.xml" /my_product/etc/refresh_rate_config.xml 2>/dev/null
+    if [ ! -d "/data/adb/modules/fortnite_120hz_boost" ] || [ -f "/data/adb/modules/fortnite_120hz_boost/disable" ] || [ -f "/data/adb/modules/fortnite_120hz_boost/remove" ]; then
+        cp -f "$MODDIR/refresh_rate_config.xml" /data/system/refresh_rate_config.xml 2>/dev/null
+        chown system:system /data/system/refresh_rate_config.xml 2>/dev/null
+        chmod 0644 /data/system/refresh_rate_config.xml 2>/dev/null
+        chcon u:object_r:system_data_file:s0 /data/system/refresh_rate_config.xml 2>/dev/null
+    fi
 fi
 
 # Systemless bind-mount mixer_paths.xml (Speaker + Headphone Hardware Boost)
 if [ -f "$MODDIR/mixer_paths.xml" ]; then
     chcon u:object_r:vendor_configs_file:s0 "$MODDIR/mixer_paths.xml" 2>/dev/null
-    mount -o bind "$MODDIR/mixer_paths.xml" /odm/etc/mixer_paths.xml 2>/dev/null
+    grep -q " /odm/etc/mixer_paths.xml " /proc/mounts || \
+        mount -o bind "$MODDIR/mixer_paths.xml" /odm/etc/mixer_paths.xml 2>/dev/null
 fi
 
 # Systemless bind-mount sys_thermal_control_config.xml (Anti-Throttle & 120Hz lock under charging)
 if [ -f "$MODDIR/sys_thermal_control_config.xml" ]; then
     chcon u:object_r:vendor_configs_file:s0 "$MODDIR/sys_thermal_control_config.xml" 2>/dev/null
-    mount -o bind "$MODDIR/sys_thermal_control_config.xml" /odm/etc/temperature_profile/sys_thermal_control_config.xml 2>/dev/null
+    grep -q " /odm/etc/temperature_profile/sys_thermal_control_config.xml " /proc/mounts || \
+        mount -o bind "$MODDIR/sys_thermal_control_config.xml" /odm/etc/temperature_profile/sys_thermal_control_config.xml 2>/dev/null
 fi
 
 # Deploy fast charge toggle script to /data/local/tmp
