@@ -1,5 +1,12 @@
 # OnePlus Pad 3 / Pad Pro 智能极速充与能效触控优化 - 更新日志
 
+## [v3.4.2] - 2026-11-25
+
+### 🔌 新增 Root 硬件级旁路供电（Screen-On ≥95% Bypass Charging）
+- **亮屏 ≥95% 自动开启硬件旁路供电**：实测 `oplus_chg` 内核节点 `/sys/devices/virtual/oplus_chg/battery/mmi_charging_enable=0` 可真实切断电池充电回路（`chg_en=0, suspend=0, wired_online=1`），由电源直接给主板供电，保护电芯并降低边充边玩发热。
+- **息屏自动恢复充电 + 防抖滞回**：息屏（`dpms != On`）或拔线时自动恢复 `mmi_charging_enable=1` 正常充满；`95%` 触发、`<=92%` 恢复，避免临界点反复切换。
+- **修复开机 PID 复用锁死**：`service.sh` 启动前清理旧 `.pid`，`smart_power_daemon.sh` 增加 `/proc/$OLD_PID/cmdline` 进程名校验。
+
 ## [v3.4.1] - 2026-11-25
 
 ### 🐛 Bug 修复与调度/内存能效优化

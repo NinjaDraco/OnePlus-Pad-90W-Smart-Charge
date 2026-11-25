@@ -133,6 +133,7 @@ is_casual_game() {
 
 CURRENT_MODE=""
 CHARGING_SETTINGS_APPLIED=0
+BYPASS_ACTIVE=0
 ip link set dev wlan0 mtu 1460 2>/dev/null
 log_info "OnePlus Pad Unified Smart Power & Dynamic Optimizer 2.0 started (PID: $$)."
 
@@ -145,50 +146,71 @@ while true; do
     batt_temp_raw=$(cat /sys/class/power_supply/battery/temp 2>/dev/null || echo "300")
     batt_volt_uv=$(cat /sys/class/power_supply/battery/voltage_now 2>/dev/null || echo "3800000")
     batt_curr_raw=$(cat /sys/class/power_supply/battery/current_now 2>/dev/null || echo "0")
+    dpms_state=$(cat /sys/class/drm/card0-DSI-1/dpms 2>/dev/null || echo "On")
 
     batt_volt=$((batt_volt_uv / 1000))
     batt_temp_c=$((batt_temp_raw / 10))
     batt_temp_dec=$((batt_temp_raw % 10))
 
-    # 2. Fast Charging Logic with Desktop Switch Integration
-    if [ "$batt_status" = "Charging" ]; then
-        if [ "$CHARGING_SETTINGS_APPLIED" != "1" ]; then
-            settings put system single_speed_charge_state 1 2>/dev/null
-            settings put system smart_charge_switch_state 0 2>/dev/null
-            settings put system charge_protection_current_state 0 2>/dev/null
-            CHARGING_SETTINGS_APPLIED=1
-        fi
-        if [ -f "/data/local/tmp/super_charge_unlocked" ]; then
-            # 桌面开关处于开启状态：锁定 0 档温控，彻底解除亮屏降频
-            if [ "$batt_temp_raw" -lt 480 ]; then
-                echo 0 > /sys/devices/virtual/oplus_chg/battery/cool_down 2>/dev/null
-                echo 0 > /sys/class/oplus_chg/battery/cool_down 2>/dev/null
-                CHARGE_DESC="⚡ 满血狂暴充 (桌面开关已解除亮屏限速)"
-            else
-                echo 2 > /sys/devices/virtual/oplus_chg/battery/cool_down 2>/dev/null
-                CHARGE_DESC="🛡️ 极限温度熔断保护 (>48°C)"
+    # 2. Fast Charging & Screen-On >=95% Hardware Bypass Charging Logic
+    if [ "$batt_status" != "Discharging" ]; then
+        if [ "$dpms_state" = "On" ] && { [ "$batt_level" -ge 95 ] || { [ "$BYPASS_ACTIVE" = "1" ] && [ "$batt_level" -gt 92 ]; }; }; then
+            if [ "$BYPASS_ACTIVE" != "1" ]; then
+                BYPASS_ACTIVE=1
+                log_info "Screen ON & battery ${batt_level}% (>=95%). Enabling hardware bypass charging (mmi_charging_enable=0)."
             fi
+            echo 0 > /sys/devices/virtual/oplus_chg/battery/mmi_charging_enable 2>/dev/null
+            CHARGE_DESC="🔌 硬件旁路供电 (≥95% 亮屏直供电护电芯)"
         else
-            # 桌面开关处于关闭状态：正常温控保护策略
-            if [ "$batt_temp_raw" -lt 420 ]; then
-                echo 0 > /sys/devices/virtual/oplus_chg/battery/cool_down 2>/dev/null
-                CHARGE_DESC="⚡ 80W 极速闪充 (满血输出)"
-            elif [ "$batt_temp_raw" -lt 450 ]; then
-                echo 1 > /sys/devices/virtual/oplus_chg/battery/cool_down 2>/dev/null
-                CHARGE_DESC="🔥 智能控温充 (~50W 恒温速充)"
+            if [ "$BYPASS_ACTIVE" = "1" ]; then
+                BYPASS_ACTIVE=0
+                echo 1 > /sys/devices/virtual/oplus_chg/battery/mmi_charging_enable 2>/dev/null
+                log_info "Bypass charging released (dpms=$dpms_state, level=${batt_level}%). Resuming normal charging."
             else
-                echo 3 > /sys/devices/virtual/oplus_chg/battery/cool_down 2>/dev/null
-                CHARGE_DESC="🛡️ 高温安全回退 (保护电芯寿命)"
+                mmi_cur=$(cat /sys/devices/virtual/oplus_chg/battery/mmi_charging_enable 2>/dev/null)
+                [ "$mmi_cur" = "0" ] && echo 1 > /sys/devices/virtual/oplus_chg/battery/mmi_charging_enable 2>/dev/null
+            fi
+            if [ "$CHARGING_SETTINGS_APPLIED" != "1" ]; then
+                settings put system single_speed_charge_state 1 2>/dev/null
+                settings put system smart_charge_switch_state 0 2>/dev/null
+                settings put system charge_protection_current_state 0 2>/dev/null
+                CHARGING_SETTINGS_APPLIED=1
+            fi
+            if [ -f "/data/local/tmp/super_charge_unlocked" ]; then
+                # 桌面开关处于开启状态：锁定 0 档温控，彻底解除亮屏降频
+                if [ "$batt_temp_raw" -lt 480 ]; then
+                    echo 0 > /sys/devices/virtual/oplus_chg/battery/cool_down 2>/dev/null
+                    echo 0 > /sys/class/oplus_chg/battery/cool_down 2>/dev/null
+                    CHARGE_DESC="⚡ 满血狂暴充 (桌面开关已解除亮屏限速)"
+                else
+                    echo 2 > /sys/devices/virtual/oplus_chg/battery/cool_down 2>/dev/null
+                    CHARGE_DESC="🛡️ 极限温度熔断保护 (>48°C)"
+                fi
+            else
+                # 桌面开关处于关闭状态：正常温控保护策略
+                if [ "$batt_temp_raw" -lt 420 ]; then
+                    echo 0 > /sys/devices/virtual/oplus_chg/battery/cool_down 2>/dev/null
+                    CHARGE_DESC="⚡ 80W 极速闪充 (满血输出)"
+                elif [ "$batt_temp_raw" -lt 450 ]; then
+                    echo 1 > /sys/devices/virtual/oplus_chg/battery/cool_down 2>/dev/null
+                    CHARGE_DESC="🔥 智能控温充 (~50W 恒温速充)"
+                else
+                    echo 3 > /sys/devices/virtual/oplus_chg/battery/cool_down 2>/dev/null
+                    CHARGE_DESC="🛡️ 高温安全回退 (保护电芯寿命)"
+                fi
             fi
         fi
     else
         CHARGING_SETTINGS_APPLIED=0
+        if [ "$BYPASS_ACTIVE" = "1" ]; then
+            BYPASS_ACTIVE=0
+            echo 1 > /sys/devices/virtual/oplus_chg/battery/mmi_charging_enable 2>/dev/null
+        fi
         echo 0 > /sys/devices/virtual/oplus_chg/battery/cool_down 2>/dev/null
         CHARGE_DESC="🔋 未在充电 (正常放电)"
     fi
 
     # 3. Screen State Check via DRM DPMS
-    dpms_state=$(cat /sys/class/drm/card0-DSI-1/dpms 2>/dev/null || echo "On")
 
     if [ "$dpms_state" != "On" ]; then
         if [ "$CURRENT_MODE" != "SCREEN_OFF" ]; then
